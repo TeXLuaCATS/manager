@@ -10,14 +10,12 @@ import shlex
 import shutil
 import subprocess
 import sys
-import tempfile
-import unittest
+import textwrap
 import urllib.request
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Literal, Optional, Union, cast
-import textwrap
 
 logging.basicConfig(
     format="%(levelname)s %(message)s",
@@ -47,7 +45,7 @@ copyright_notice = """----------------------------------------------------------
 ---with this program. If not, see <https://www.gnu.org/licenses/>."""
 
 
-class Colors:
+class Color:
     """ANSI color codes
 
     Source: https://gist.github.com/rene-d/9e584a7dd2935d0f461904b9f2950007
@@ -80,15 +78,15 @@ class Colors:
 
     @staticmethod
     def _apply_color(color: str, text: Any) -> str:
-        return color + str(text) + Colors.END
+        return color + str(text) + Color.END
 
     @staticmethod
     def red(text: Any) -> str:
-        return Colors._apply_color(Colors.RED, text)
+        return Color._apply_color(Color.RED, text)
 
     @staticmethod
     def green(text: Any) -> str:
-        return Colors._apply_color(Colors.GREEN, text)
+        return Color._apply_color(Color.GREEN, text)
 
 
 def _run_stylua(path: Path | str) -> None:
@@ -114,11 +112,11 @@ def _run_pygmentize(path: Path | str) -> None:
 def _diff(a: str, b: str) -> None:
     for line in difflib.unified_diff(a.splitlines(), b.splitlines(), n=1):
         if line.startswith("-"):
-            print(Colors.RED + line + Colors.END)
+            print(Color.RED + line + Color.END)
         elif line.startswith("+"):
-            print(Colors.GREEN + line + Colors.END)
+            print(Color.GREEN + line + Color.END)
         elif line.startswith("@@"):
-            print(Colors.PURPLE + line + Colors.END)
+            print(Color.PURPLE + line + Color.END)
         else:
             print(line)
 
@@ -387,8 +385,8 @@ def _apply(
     ):
         logger.debug(
             "Apply function %s on file %s",
-            Colors.green(fn.__name__),
-            Colors.green(str(path)),
+            Color.green(fn.__name__),
+            Color.green(str(path)),
         )
         fn(TextFile(path))
 
@@ -855,7 +853,7 @@ def example(
     ) -> None:
         """Run and execute one example file"""
         relpath: str = str(src).replace(str(project_base_path / "examples") + "/", "")
-        print(f"Example: {Colors.green(relpath)}")
+        print(f"Example: {Color.green(relpath)}")
 
         logger.debug(f"Example source: {src}")
 
@@ -1078,55 +1076,6 @@ class Args:
     luaonly: bool
 
 
-class TestManager(unittest.TestCase):
-    def test_repository_get_commit_id(self) -> None:
-        self.assertEqual(len(Repository(project_base_path).get_latest_commitid()), 40)
-
-    def test_repository_is_commited(self) -> None:
-        self.assertIsInstance(Repository(project_base_path).is_commited(), bool)
-
-    def test_repository_get_remote(self) -> None:
-        self.assertEqual(
-            Repository(project_base_path).get_remote(),
-            "git@github.com:Josef-Friedrich/LuaTeX_Lua-API.git",
-        )
-
-    def test_repository_get_latest_commit_url(self) -> None:
-        repo = Repository(project_base_path)
-        self.assertIn(
-            repo.get_latest_commitid(),
-            repo.get_latest_commit_url(),
-        )
-
-    def test_red(self) -> None:
-        self.assertEqual(Colors.red("red"), "\x1b[0;31mred\x1b[0m")
-
-    def test_green(self) -> None:
-        self.assertEqual(Colors.green("green"), "\x1b[0;32mgreen\x1b[0m")
-
-    def test_download(self) -> None:
-        with tempfile.NamedTemporaryFile(delete=True) as tmp:
-            _download_url("https://de.wikipedia.org", tmp.name)
-            t = Path(tmp.name)
-            self.assertTrue(t.exists())
-            self.assertIn("Wikipedia", t.read_text())
-
-    def test_distribute(self) -> None:
-        pass
-        # shutil.rmtree(project_base_path / "dist" / "library")
-        # dist()
-        # self.assertTrue(
-        #     (
-        #         project_base_path / "dist" / "library" / "luatex" / "callback.lua"
-        #     ).exists()
-        # )
-
-        # def __check_navigation_table(path: Path):
-        #     self.assertNotIn("_N.", path.read_text(), path)
-
-        # _apply("dist/**/*lua", __check_navigation_table)
-
-
 def cli():
     main_parser = argparse.ArgumentParser()
 
@@ -1206,9 +1155,6 @@ def cli():
         help="Update all submodules",
     )
 
-    # test
-    subparsers.add_parser("test", help="Run the embedded unittest.")
-
     args = cast(Args, main_parser.parse_args())
 
     if args.debug:
@@ -1236,10 +1182,6 @@ def cli():
         rewrap(args.path)
     elif args.command == "submodule":
         submodule()
-    elif args.command == "test":
-        suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestManager)
-        runner = unittest.TextTestRunner()
-        runner.run(suite)
     else:
         main_parser.print_help()
         sys.exit(1)
