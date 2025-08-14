@@ -436,21 +436,38 @@ class Repository(Path):
         result = subprocess.run(["git", "commit", "-m", message], cwd=self)
         return result.returncode == 0
 
-    def get_basepath(self) -> Path:
-        return Path(self.__check_output("git", "rev-parse", "--show-toplevel"))
+    __basepath: Optional[Path] = None
+
+    @property
+    def basepath(self) -> Path:
+        if not self.__basepath:
+            self.__basepath = Path(
+                self.__check_output("git", "rev-parse", "--show-toplevel")
+            )
+        return self.__basepath
 
     def get_relpath(self, file: Path | str) -> str:
         file = str(file)
-        file = file.replace(str(self.get_basepath()), "")
+        file = file.replace(str(self.basepath), "")
         return file[1:]
 
-    def get_github_owner_repo(self) -> str:
+    def get_github_blob_url(self, file: Path | str) -> str:
+        # https://github.com/TeXLuaCATS/LuaTeX/blob/main/library/font.lua
+        return f"https://github.com/{self.github_owner_repo}/blob/main/{self.get_relpath(file)}"
+
+    @property
+    def github_owner_repo(self) -> str:
         # git@github.com:TeXLuaCATS/LuaMetaTeX.git
         # https://github.com/TeXLuaCATS/LuaMetaTeX.git
-        remote = self.get_remote()
+        remote = self.remote
         remote = remote.replace(".git", "")
         return re.sub("^.*github.com.", "", remote)
 
+    @property
+    def github_pull_request_url(self) -> str:
+        return f"https://github.com/{self.github_owner_repo}/pulls"
+
+    @property
     def is_commited(self) -> bool:
         """
         Checks if there are no uncommitted changes in the current Git repository.
@@ -458,26 +475,30 @@ class Repository(Path):
         Returns:
             bool: True if the working directory is clean (no changes since last commit), False otherwise.
         """
-        return (
-            subprocess.check_output(["git", "diff", "HEAD"], encoding="utf-8", cwd=self)
-            == ""
-        )
+        return self.__check_output("git", "diff", "HEAD") == ""
 
-    def get_latest_commitid(self) -> str:
-        return subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], encoding="utf-8", cwd=self
-        ).strip()
+    __latest_commitid: Optional[str] = None
 
-    def get_latest_commit_url(self) -> str:
-        owner_repo = self.get_github_owner_repo()
-        latest = self.get_latest_commitid()
+    @property
+    def latest_commitid(self) -> str:
+        if not self.__latest_commitid:
+            self.__latest_commitid = self.__check_output("git", "rev-parse", "HEAD")
+        return self.__latest_commitid
+
+    @property
+    def latest_commit_url(self) -> str:
+        owner_repo = self.github_owner_repo
+        latest = self.latest_commitid
         # https://github.com/TeXLuaCATS/LuaMetaTeX/commit/7ec2a8ef132ce450e62c29ce4dfea0c7ac67fb42
         return f"https://github.com/{owner_repo}/commit/{latest}"
 
-    def get_remote(self) -> str:
-        return subprocess.check_output(
-            ["git", "remote", "get-url", "origin"], encoding="utf-8", cwd=self
-        ).strip()
+    __remote: Optional[str] = None
+
+    @property
+    def remote(self) -> str:
+        if not self.__remote:
+            self.__remote = self.__check_output("git", "remote", "get-url", "origin")
+        return self.__remote
 
     def sync_from_remote(self, branch: str = "main") -> None:
         self.__checkout(branch)
@@ -599,13 +620,13 @@ class ManagedSubproject:
         _apply(dist, lambda file: file.remove_navigation_table())
         _apply(dist, lambda file: file.clean_docstrings())
 
-        if not self.repo.is_commited():
+        if not self.repo.is_commited:
             raise Exception("Uncommited changes found! Commit first, then retry!")
 
         if self.downstream_repo:
             _copy_directory(dist, self.downstream_repo / "library")
             self.downstream_repo.sync_to_remote(
-                "Sync with " + self.repo.get_latest_commit_url()
+                "Sync with " + self.repo.latest_commit_url
             )
 
     def generate_markdown_docs(self, commit_id: str) -> None:
@@ -1035,7 +1056,7 @@ def dist() -> None:
             subproject.dist / "library",
             vscode_extension_repo / "library" / lowercase_name,
         )
-        latest_commit_urls.append(subproject.repo.get_latest_commit_url())
+        latest_commit_urls.append(subproject.repo.latest_commit_url)
     vscode_extension_repo.sync_to_remote(
         "Sync with:\n\n" + "- " + "\n- ".join(latest_commit_urls)
     )

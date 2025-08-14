@@ -1,34 +1,41 @@
-from manager import Repository, project_base_path
+from pathlib import Path
+from manager import Repository
 
 
-repo = Repository(project_base_path)
+def test_basepath(repo: Repository) -> None:
+    assert str(repo.basepath).startswith("/")
 
 
-def test_get_basepath() -> None:
-    assert str(repo.get_basepath()).startswith("/")
+def test_get_relpath(repo: Repository, file_path: Path) -> None:
+    assert repo.get_relpath(file_path) == "test/test.lua"
 
 
-def test_get_relpath() -> None:
+def test_get_github_blob_url(repo: Repository, file_path: Path) -> None:
     assert (
-        repo.get_relpath(repo.get_basepath() / "test" / "test.lua") == "test/test.lua"
+        repo.get_github_blob_url(file_path)
+        == "https://github.com/TeXLuaCATS/manager/blob/main/test/test.lua"
     )
 
 
-def test_get_github_owner_repo() -> None:
-    assert repo.get_github_owner_repo() == "TeXLuaCATS/manager"
+def test_github_owner_repo(repo: Repository) -> None:
+    assert repo.github_owner_repo == "TeXLuaCATS/manager"
 
 
-def test_is_commited() -> None:
-    assert isinstance(repo.is_commited(), bool)
+def test_github_pull_request_url(repo: Repository) -> None:
+    assert repo.github_pull_request_url == "https://github.com/TeXLuaCATS/manager/pulls"
 
 
-def test_get_latest_commitid() -> None:
-    assert len(repo.get_latest_commitid()) == 40
+def test_is_commited(repo: Repository) -> None:
+    assert isinstance(repo.is_commited, bool)
 
 
-def test_get_latest_commit_url() -> None:
-    assert repo.get_latest_commitid() in repo.get_latest_commit_url()
+def test_get_latest_commitid(repo: Repository) -> None:
+    assert len(repo.latest_commitid) == 40
 
 
-def test_get_remote() -> None:
-    assert repo.get_remote() == "git@github.com:TeXLuaCATS/manager.git"
+def test_get_latest_commit_url(repo: Repository) -> None:
+    assert repo.latest_commitid in repo.latest_commit_url
+
+
+def test_get_remote(repo: Repository) -> None:
+    assert repo.remote == "git@github.com:TeXLuaCATS/manager.git"
