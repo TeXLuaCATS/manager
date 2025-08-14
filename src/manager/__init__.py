@@ -16,6 +16,17 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Literal, Optional, Union, cast
+from jinja2 import Environment, FileSystemLoader
+
+
+def render_template(path: Path | str) -> str:
+    if isinstance(path, str):
+        path = Path(path)
+    env = Environment(loader=FileSystemLoader(path.parent))
+    env.globals["contribute"] = "Please contribute"  # type: ignore
+    template = env.get_template(path.name)
+    return template.render()
+
 
 logging.basicConfig(
     format="%(levelname)s %(message)s",
@@ -392,11 +403,14 @@ def _apply(
 
 
 class Repository(Path):
-    def __execute(self, *args: str) -> int:
+    def __check_call(self, *args: str) -> int:
         return subprocess.check_call(args, cwd=self)
 
+    def __check_output(self, *args: str) -> str:
+        return subprocess.check_output(args, encoding="utf-8", cwd=self).strip()
+
     def __checkout(self, branch: str = "main") -> None:
-        self.__execute("git", "checkout", branch)
+        self.__check_call("git", "checkout", branch)
 
     def checkout_clean(self, branch: str = "main") -> None:
         self.__add()
@@ -407,20 +421,35 @@ class Repository(Path):
         self.__pull(branch)
 
     def __add(self) -> None:
-        self.__execute("git", "add", "-A")
+        self.__check_call("git", "add", "-A")
 
     def __reset(self) -> None:
-        self.__execute("git", "reset", "--hard", "HEAD")
+        self.__check_call("git", "reset", "--hard", "HEAD")
 
     def __pull(self, branch: str = "main") -> None:
-        self.__execute("git", "pull", "origin", branch)
+        self.__check_call("git", "pull", "origin", branch)
 
     def __push(self, branch: str = "main") -> None:
-        self.__execute("git", "push", "-u", "origin", branch)
+        self.__check_call("git", "push", "-u", "origin", branch)
 
     def __commit(self, message: str) -> bool:
         result = subprocess.run(["git", "commit", "-m", message], cwd=self)
         return result.returncode == 0
+
+    def get_basepath(self) -> Path:
+        return Path(self.__check_output("git", "rev-parse", "--show-toplevel"))
+
+    def get_relpath(self, file: Path | str) -> str:
+        file = str(file)
+        file = file.replace(str(self.get_basepath()), "")
+        return file[1:]
+
+    def get_github_owner_repo(self) -> str:
+        # git@github.com:TeXLuaCATS/LuaMetaTeX.git
+        # https://github.com/TeXLuaCATS/LuaMetaTeX.git
+        remote = self.get_remote()
+        remote = remote.replace(".git", "")
+        return re.sub("^.*github.com.", "", remote)
 
     def is_commited(self) -> bool:
         """
@@ -440,14 +469,10 @@ class Repository(Path):
         ).strip()
 
     def get_latest_commit_url(self) -> str:
+        owner_repo = self.get_github_owner_repo()
         latest = self.get_latest_commitid()
-        # git@github.com:TeXLuaCATS/LuaMetaTeX.git
-        # https://github.com/TeXLuaCATS/LuaMetaTeX.git
-        remote = self.get_remote()
-        remote = remote.replace(".git", "")
-        remote = re.sub("^.*github.com.", "", remote)
         # https://github.com/TeXLuaCATS/LuaMetaTeX/commit/7ec2a8ef132ce450e62c29ce4dfea0c7ac67fb42
-        return f"https://github.com/{remote}/commit/{latest}"
+        return f"https://github.com/{owner_repo}/commit/{latest}"
 
     def get_remote(self) -> str:
         return subprocess.check_output(
