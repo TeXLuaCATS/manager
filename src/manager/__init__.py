@@ -1,7 +1,5 @@
 #! /usr/bin/python
 
-import argparse
-import click
 import difflib
 import glob
 import logging
@@ -18,6 +16,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Generator, Literal, Optional, Union
 
+import click
 from jinja2 import Environment, FileSystemLoader
 
 logging.basicConfig(
@@ -30,6 +29,8 @@ logger = logging.getLogger(__name__)
 
 project_base_path: Path = Path.cwd()
 """The parent directory of this repository."""
+
+current_subproject = Optional[str]
 
 # Removed by a regex: ---Copyright (C) 2022-2025 by Josef Friedrich <josef@friedrich.rocks>
 copyright_notice = """------------------------------------------------------------------------
@@ -145,7 +146,7 @@ def _copy_directory(
 
 
 def _download_url(url: str, dest_path: str) -> None:
-    logger.debug("Download %s into %s", url, dest_path)
+    logger.debug("Download %s into %s", Color.red(url), Color.green(dest_path))
     with urllib.request.urlopen(url) as response:
         data = response.read()
         with open(dest_path, "wb") as f:
@@ -863,34 +864,87 @@ vscode_extension_repo = Repository(project_base_path, "vscode_extension")
 
 # convert
 
+
 @click.group()
-@click.option("--debug", is_flag=True)
-@click.option("--base-path", metavar="PATH")
-def cli(debug: bool, base_path: Optional[str]) -> None:
+@click.option("-d", "--debug", is_flag=True)
+@click.option("-b", "--base-path", metavar="PATH")
+@click.option("--lualatex", is_flag=True, help="Select LuaLaTeX as current subproject.")
+@click.option("--lualibs", is_flag=True, help="Select Lualibs as current subproject.")
+@click.option(
+    "--luametatex", is_flag=True, help="Select LuaMetaTeX as current subproject."
+)
+@click.option(
+    "--luaotfload", is_flag=True, help="Select LuaOTFload as current subproject."
+)
+@click.option("--luatex", is_flag=True, help="Select LuaTeX as current subproject.")
+def cli(
+    debug: bool,
+    base_path: Optional[str],
+    lualatex: Optional[str],
+    lualibs: Optional[str],
+    luametatex: Optional[str],
+    luaotfload: Optional[str],
+    luatex: Optional[str],
+) -> None:
     """Manager for the TeXLuaCATS project."""
     global project_base_path
+    global current_subproject
     if debug:
         logger.setLevel(logging.DEBUG)
     if base_path is not None:
         project_base_path = Path(base_path)
 
+    if lualatex:
+        current_subproject = "lualatex"
+    elif lualibs:
+        current_subproject = "lualibs"
+    elif luametatex:
+        current_subproject = "luametatex"
+    elif luaotfload:
+        current_subproject = "luaotfload"
+    elif luatex:
+        current_subproject = "luatex"
 
-def convert_tex() -> None:
+
+@cli.command()
+def convert() -> None:
+    """Convert manuals"""
     _apply("resources/manuals", lambda file: file.convert_tex_to_lua(), extension="tex")
-
-
-def convert_html() -> None:
     _apply("resources", lambda file: file.convert_html_to_lua(), extension="html")
 
 
+@cli.command()
+@click.argument("relpath")
+@click.option(
+    "-p",
+    "--subproject",
+    help="Select the subproject.",
+    type=click.Choice(subprojects),
+    default="luatex",
+)
+@click.option(
+    "-l",
+    "--luaonly",
+    help="Exectute the example in an Lua only environement without the TeX related libraries",
+    is_flag=True,
+)
+@click.option(
+    "--print-docstring",
+    help="Print the lua code into fenced markdown code plain as a Lua comment.",
+    is_flag=True,
+)
 def example(
-    src_relpath: str,
+    relpath: str,
     luaonly: bool = False,
     subproject: Subproject = "luatex",
     print_docstring: bool = False,
 ) -> None:
     def _extract_tex_markup(lua_code: str) -> tuple[str, str]:
         """
+        Compile examples in the folder ./examples
+
+        You can specify the relative path of a Lua file or of a TeX file.
+
         Extracts lines marked with '--tex: ' from Lua code and separates them from the rest.
 
         Args:
@@ -1036,10 +1090,10 @@ def example(
             sys.exit(1)
 
     src: Path
-    if src_relpath.startswith("examples"):
-        src = project_base_path / src_relpath
+    if relpath.startswith("examples"):
+        src = project_base_path / relpath
     else:
-        src = project_base_path / "examples" / subproject / src_relpath
+        src = project_base_path / "examples" / subproject / relpath
 
     if not src.exists():
         with_extension = Path(str(src) + ".lua")
@@ -1056,7 +1110,9 @@ def example(
         _run_example(src, luaonly=luaonly, print_docstring=print_docstring)
 
 
+@cli.command()
 def format() -> None:
+    """Format the lua docstrings (Remove duplicate empty comment lines, start docstring with an empty line)"""
     for _, subproject in managed_subprojects.items():
         subproject.format()
 
@@ -1068,8 +1124,11 @@ def manuals() -> None:
         subproject.download_manuals()
 
 
+@cli.command()
+@click.argument("subproject")
 def merge(subproject: Subproject = "luatex") -> None:
     """Merge all lua files of a subproject into one big file for the CTAN upload."""
+
     contents: list[str] = []
 
     def _merge(file: TextFile) -> None:
@@ -1113,7 +1172,9 @@ def merge(subproject: Subproject = "luatex") -> None:
     TextFile(dest).clean_docstrings()
 
 
+@cli.command()
 def dist() -> None:
+    "Copy library to dist and remove the navigation table."
     for _, subproject in managed_subprojects.items():
         subproject.distribute()
     # vscode extension
@@ -1132,8 +1193,10 @@ def dist() -> None:
     parent_repo.sync_to_remote("Update submodules")
 
 
+@cli.command()
+@click.argument("path")
 def rewrap(path: str) -> None:
-    """Rewrap the comments"""
+    """The Rewrap extension (https://github.com/dnut/Rewrap) does not support rewraping of thee hyphens prefixed comment lines."""
     abspath = Path(path).resolve()
     lines: list[str] = []
     for line in abspath.read_text().splitlines():
@@ -1165,131 +1228,12 @@ def rewrap(path: str) -> None:
     print("\n".join(lines))
 
 
+@cli.command()
 def submodule() -> None:
+    """Update all submodules"""
     for _, subproject in managed_subprojects.items():
         subproject.sync_from_remote()
 
 
-# @dataclass
-# class Args:
-#     debug: bool
-#     command: Literal[
-#         "convert",
-#         "dist",
-#         "example",
-#         "format",
-#         "manuals",
-#         "merge",
-#         "rewrap",
-#         "submodule",
-#         "test",
-#     ]
-#     relpath: Optional[str]
-#     path: Optional[str]
-#     subproject: Subproject
-#     print_docstring: bool
-#     luaonly: bool
-
-
 def main() -> None:
-    main_parser = argparse.ArgumentParser()
-
-    main_parser.add_argument("-d", "--debug", action="store_true")
-
-    subparsers = main_parser.add_subparsers(dest="command")
-
-    # convert
-    subparsers.add_parser(
-        "convert",
-        help="Convert manuals",
-    )
-
-    # dist
-    subparsers.add_parser(
-        "dist",
-        help="Copy library to dist and remove the navigation table.",
-    )
-
-    # example
-    example_parser = subparsers.add_parser(
-        "example",
-        help="Compile examples in the folder ./examples",
-        description="You can specify the relative path of a Lua file or of a TeX file.",
-    )
-    example_parser.add_argument(
-        "-p",
-        "--subproject",
-        help="Select the subproject.",
-        choices=subprojects,
-        default="luatex",
-    )
-    example_parser.add_argument(
-        "-l",
-        "--luaonly",
-        help="Exectute the example in an Lua only environement without the TeX related libraries",
-        action="store_true",
-    )
-    example_parser.add_argument(
-        "--print-docstring",
-        help="Print the lua code into fenced markdown code plain as a Lua comment.",
-        action="store_true",
-    )
-
-    example_parser.add_argument("relpath")
-
-    # format
-    subparsers.add_parser(
-        "format",
-        help="Format the lua docstrings (Remove duplicate empty comment lines, start docstring with an empty line)",
-    )
-
-
-    # merge
-    merge_parser = subparsers.add_parser(
-        "merge",
-        help="Merge multiple definitions files into one for the CTAN upload.",
-        description="Specify the subproject folder.",
-    )
-    merge_parser.add_argument("subproject")
-
-    # rewrap
-    rewrap_parser = subparsers.add_parser(
-        "rewrap",
-        help="The Rewrap extension (https://github.com/dnut/Rewrap) does not support rewraping of thee hyphens prefixed comment lines.",
-    )
-    rewrap_parser.add_argument("path")
-
-    # submodule
-    subparsers.add_parser(
-        "submodule",
-        help="Update all submodules",
-    )
-
     cli()
-
-    # args = cast(Args, main_parser.parse_args())
-
-
-    # if args.command == "convert":
-    #     convert_tex()
-    #     convert_html()
-    # elif args.command == "dist":
-    #     dist()
-    # elif args.command == "example" and args.relpath:
-    #     example(
-    #         args.relpath,
-    #         luaonly=args.luaonly,
-    #         subproject=args.subproject,
-    #         print_docstring=args.print_docstring,
-    #     )
-    # elif args.command == "format":
-    #     format()
-    # elif args.command == "merge" and args.subproject:
-    #     merge(args.subproject)
-    # elif args.command == "rewrap" and args.path:
-    #     rewrap(args.path)
-    # elif args.command == "submodule":
-    #     submodule()
-    # else:
-    #     main_parser.print_help()
-    #     sys.exit(1)
