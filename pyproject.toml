@@ -5,12 +5,13 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "click>=8.2.1",
     "jinja2>=3.1.6",
     "pytest>=8.4.1",
 ]
 
 [project.scripts]
-texluacats = "manager:cli"
+manager = "manager:main"
 
 [build-system]
 requires = ["uv_build>=0.8.10,<0.9.0"]

@@ -1,6 +1,7 @@
 #! /usr/bin/python
 
 import argparse
+import click
 import difflib
 import glob
 import logging
@@ -15,7 +16,7 @@ import urllib.request
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Generator, Literal, Optional, Union, cast
+from typing import Any, Callable, Generator, Literal, Optional, Union
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -27,7 +28,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-project_base_path: Path = Path(__file__).resolve().parent
+project_base_path: Path = Path.cwd()
 """The parent directory of this repository."""
 
 # Removed by a regex: ---Copyright (C) 2022-2025 by Josef Friedrich <josef@friedrich.rocks>
@@ -862,6 +863,17 @@ vscode_extension_repo = Repository(project_base_path, "vscode_extension")
 
 # convert
 
+@click.group()
+@click.option("--debug", is_flag=True)
+@click.option("--base-path", metavar="PATH")
+def cli(debug: bool, base_path: Optional[str]) -> None:
+    """Manager for the TeXLuaCATS project."""
+    global project_base_path
+    if debug:
+        logger.setLevel(logging.DEBUG)
+    if base_path is not None:
+        project_base_path = Path(base_path)
+
 
 def convert_tex() -> None:
     _apply("resources/manuals", lambda file: file.convert_tex_to_lua(), extension="tex")
@@ -1049,7 +1061,9 @@ def format() -> None:
         subproject.format()
 
 
+@cli.command()
 def manuals() -> None:
+    """Download the TeX or HTML sources of the manuals."""
     for _, subproject in managed_subprojects.items():
         subproject.download_manuals()
 
@@ -1156,28 +1170,28 @@ def submodule() -> None:
         subproject.sync_from_remote()
 
 
-@dataclass
-class Args:
-    debug: bool
-    command: Literal[
-        "convert",
-        "dist",
-        "example",
-        "format",
-        "manuals",
-        "merge",
-        "rewrap",
-        "submodule",
-        "test",
-    ]
-    relpath: Optional[str]
-    path: Optional[str]
-    subproject: Subproject
-    print_docstring: bool
-    luaonly: bool
+# @dataclass
+# class Args:
+#     debug: bool
+#     command: Literal[
+#         "convert",
+#         "dist",
+#         "example",
+#         "format",
+#         "manuals",
+#         "merge",
+#         "rewrap",
+#         "submodule",
+#         "test",
+#     ]
+#     relpath: Optional[str]
+#     path: Optional[str]
+#     subproject: Subproject
+#     print_docstring: bool
+#     luaonly: bool
 
 
-def cli():
+def main() -> None:
     main_parser = argparse.ArgumentParser()
 
     main_parser.add_argument("-d", "--debug", action="store_true")
@@ -1229,11 +1243,6 @@ def cli():
         help="Format the lua docstrings (Remove duplicate empty comment lines, start docstring with an empty line)",
     )
 
-    # manuals
-    subparsers.add_parser(
-        "manuals",
-        help="Download the TeX or HTML sources of the manuals.",
-    )
 
     # merge
     merge_parser = subparsers.add_parser(
@@ -1256,33 +1265,31 @@ def cli():
         help="Update all submodules",
     )
 
-    args = cast(Args, main_parser.parse_args())
+    cli()
 
-    if args.debug:
-        logger.setLevel(logging.DEBUG)
+    # args = cast(Args, main_parser.parse_args())
 
-    if args.command == "convert":
-        convert_tex()
-        convert_html()
-    elif args.command == "dist":
-        dist()
-    elif args.command == "example" and args.relpath:
-        example(
-            args.relpath,
-            luaonly=args.luaonly,
-            subproject=args.subproject,
-            print_docstring=args.print_docstring,
-        )
-    elif args.command == "format":
-        format()
-    elif args.command == "manuals":
-        manuals()
-    elif args.command == "merge" and args.subproject:
-        merge(args.subproject)
-    elif args.command == "rewrap" and args.path:
-        rewrap(args.path)
-    elif args.command == "submodule":
-        submodule()
-    else:
-        main_parser.print_help()
-        sys.exit(1)
+
+    # if args.command == "convert":
+    #     convert_tex()
+    #     convert_html()
+    # elif args.command == "dist":
+    #     dist()
+    # elif args.command == "example" and args.relpath:
+    #     example(
+    #         args.relpath,
+    #         luaonly=args.luaonly,
+    #         subproject=args.subproject,
+    #         print_docstring=args.print_docstring,
+    #     )
+    # elif args.command == "format":
+    #     format()
+    # elif args.command == "merge" and args.subproject:
+    #     merge(args.subproject)
+    # elif args.command == "rewrap" and args.path:
+    #     rewrap(args.path)
+    # elif args.command == "submodule":
+    #     submodule()
+    # else:
+    #     main_parser.print_help()
+    #     sys.exit(1)
