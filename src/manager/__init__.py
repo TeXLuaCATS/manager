@@ -939,11 +939,13 @@ def example(
     subproject: Subproject = "luatex",
     print_docstring: bool = False,
 ) -> None:
+    """Compile examples in the folder ./examples
+
+    You can specify the relative path of a Lua file or of a TeX file."""
+
     def _extract_tex_markup(lua_code: str) -> tuple[str, str]:
         """
-        Compile examples in the folder ./examples
 
-        You can specify the relative path of a Lua file or of a TeX file.
 
         Extracts lines marked with '--tex: ' from Lua code and separates them from the rest.
 
