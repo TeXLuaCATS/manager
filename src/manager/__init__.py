@@ -16,17 +16,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Generator, Literal, Optional, Union, cast
+
 from jinja2 import Environment, FileSystemLoader
-
-
-def render_template(path: Path | str) -> str:
-    if isinstance(path, str):
-        path = Path(path)
-    env = Environment(loader=FileSystemLoader(path.parent))
-    env.globals["contribute"] = "Please contribute"  # type: ignore
-    template = env.get_template(path.name)
-    return template.render()
-
 
 logging.basicConfig(
     format="%(levelname)s %(message)s",
@@ -525,20 +516,42 @@ class Repository(Path):
             yield RepoTextFile(path, self)
 
 
+commit_ids = {"f52b099": "f52b099f3e01d53dc03b315e1909245c3d5418d3"}
+
+
 class RepoTextFile(TextFile):
     repo: Repository
 
-    def __init__(self, path: Union[str, Path], repo: Repository) -> None:  # type: ignore
+    def __init__(self, path: Union[str, Path], repo: Repository) -> None:
         super().__init__(path)
         self.repo = repo
 
     def render(self) -> str:
-        print(self)
         env = Environment(loader=FileSystemLoader(self.path.parent))
 
-        env.globals["contribute"] = (  # type: ignore
-            f"😱 [Types]({self.repo.get_github_blob_url(self.path)}) incomplete or incorrect? 🙏 [Please contribute!]({self.repo.github_pull_request_url})"
-        )
+        def luatex_c(
+            commit_id: str,
+            relpath: str,
+            start_line: int,
+            end_line: Optional[int] = None,
+        ) -> str:
+            if len(commit_id) == 7:
+                commit_id = commit_ids[commit_id]
+            lines_url: str
+            lines_text: str
+            if end_line is not None:
+                lines_url = f"L{start_line}-{end_line}"
+                lines_text = f"Lines {start_line}-{end_line}"
+            else:
+                lines_url = f"L{start_line}"
+                lines_text = f"Line {start_line}"
+            return f"Corresponding C source code: [{relpath} {lines_text}](https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/{commit_id}/source/texk/web2c/luatexdir/{relpath}#{lines_url})"
+
+        env.globals = {
+            "luatex_c": luatex_c,
+            "contribute": f"😱 [Types]({self.repo.get_github_blob_url(self.path)}) incomplete or incorrect? 🙏 [Please contribute!]({self.repo.github_pull_request_url})",
+        }
+
         template = env.get_template(self.path.name)
         return template.render()
 
