@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from manager import Repository, TextFile, project_base_path
+from manager import Repository, TextFile, RepoTextFile, project_base_path
 
 
 @pytest.fixture
@@ -23,3 +23,8 @@ def file_path(repo: Repository) -> Path:
 @pytest.fixture
 def text_file(template_path: Path) -> TextFile:
     return TextFile(template_path)
+
+
+@pytest.fixture
+def repo_text_file(repo: Repository, text_file: TextFile) -> RepoTextFile:
+    return RepoTextFile(repo, text_file)

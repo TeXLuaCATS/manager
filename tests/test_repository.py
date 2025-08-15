@@ -39,3 +39,11 @@ def test_get_latest_commit_url(repo: Repository) -> None:
 
 def test_get_remote(repo: Repository) -> None:
     assert repo.remote == "git@github.com:TeXLuaCATS/manager.git"
+
+
+def test_files(repo: Repository) -> None:
+    count = 0
+    for file in repo.files("tests/files"):
+        assert file.repo == repo
+        count += 1
+    assert count == 1

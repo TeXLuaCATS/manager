@@ -15,7 +15,7 @@ import urllib.request
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Literal, Optional, Union, cast
+from typing import Any, Callable, Generator, Literal, Optional, Union, cast
 from jinja2 import Environment, FileSystemLoader
 
 
@@ -514,6 +514,34 @@ class Repository(Path):
         self.__add()
         if self.__commit(message):
             self.__push(branch=branch)
+
+    def files(
+        self, relpath: str | Path, extension: str = "lua"
+    ) -> Generator["RepoTextFile", Any, None]:
+        for path in glob.glob(
+            str(self.basepath / relpath) + "/**/*." + extension, recursive=True
+        ):
+            yield RepoTextFile(self, TextFile(path))
+
+
+class RepoTextFile:
+    repo: Repository
+
+    text_file: TextFile
+
+    def __init__(self, repo: Repository, text_file: TextFile) -> None:  # type: ignore
+        self.repo = repo
+        self.text_file = text_file
+
+    def render(self) -> str:
+        print(self)
+        env = Environment(loader=FileSystemLoader(Path(self.text_file).parent))
+
+        env.globals["contribute"] = (  # type: ignore
+            f"😱 [Types]({self.repo.get_github_blob_url(self.text_file)}) incomplete or incorrect? 🙏 [Please contribute!]({self.repo.github_pull_request_url})"
+        )
+        template = env.get_template(self.text_file.name)
+        return template.render()
 
 
 ManualsSpec = Union[list[str], dict[str, Optional[str]]]
