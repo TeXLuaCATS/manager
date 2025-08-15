@@ -44,8 +44,7 @@ def test_get_remote(repo: Repository) -> None:
 
 def test_files(repo: Repository) -> None:
     count = 0
-    for file in repo.files("tests/files"):
-        assert file.repo == repo
+    for _ in repo.files("tests/files"):
         count += 1
     assert count == 1
 

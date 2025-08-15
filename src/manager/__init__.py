@@ -364,6 +364,35 @@ class TextFile:
         )
         self.save()
 
+    def render(self, repo: "Repository") -> str:
+        env = Environment(loader=FileSystemLoader(self.path.parent))
+
+        def luatex_c(
+            commit_id: str,
+            relpath: str,
+            start_line: int,
+            end_line: Optional[int] = None,
+        ) -> str:
+            if len(commit_id) == 7:
+                commit_id = commit_ids[commit_id]
+            lines_url: str
+            lines_text: str
+            if end_line is not None:
+                lines_url = f"L{start_line}-{end_line}"
+                lines_text = f"Lines {start_line}-{end_line}"
+            else:
+                lines_url = f"L{start_line}"
+                lines_text = f"Line {start_line}"
+            return f"Corresponding C source code: [{relpath} {lines_text}](https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/{commit_id}/source/texk/web2c/luatexdir/{relpath}#{lines_url})"
+
+        env.globals = {
+            "luatex_c": luatex_c,
+            "contribute": f"😱 [Types]({repo.get_github_blob_url(self.path)}) incomplete or incorrect? 🙏 [Please contribute!]({repo.github_pull_request_url})",
+        }
+
+        template = env.get_template(self.path.name)
+        return template.render()
+
     def save(self) -> None:
         if logger.isEnabledFor(logging.DEBUG):
             _diff(self.orig_content, self.content)
@@ -526,59 +555,22 @@ class Repository(Path):
 
     def files(
         self, relpath: str | Path, extension: str = "lua"
-    ) -> Generator["RepoTextFile", Any, None]:
+    ) -> Generator["TextFile", Any, None]:
         for path in glob.glob(
             str(self.basepath / relpath) + "/**/*." + extension, recursive=True
         ):
-            yield RepoTextFile(path, self)
+            yield TextFile(path)
 
 
 def list_files(
     path: str | Path, repo: Repository, extension: str = "lua"
-) -> Generator["RepoTextFile", Any, None]:
+) -> Generator["TextFile", Any, None]:
     path = Path(path)
     for path in glob.glob(str(path) + "/**/*." + extension, recursive=True):
-        yield RepoTextFile(path, repo)
+        yield TextFile(path)
 
 
 commit_ids = {"f52b099": "f52b099f3e01d53dc03b315e1909245c3d5418d3"}
-
-
-class RepoTextFile(TextFile):
-    repo: Repository
-
-    def __init__(self, path: Union[str, Path], repo: Repository) -> None:
-        super().__init__(path)
-        self.repo = repo
-
-    def render(self) -> str:
-        env = Environment(loader=FileSystemLoader(self.path.parent))
-
-        def luatex_c(
-            commit_id: str,
-            relpath: str,
-            start_line: int,
-            end_line: Optional[int] = None,
-        ) -> str:
-            if len(commit_id) == 7:
-                commit_id = commit_ids[commit_id]
-            lines_url: str
-            lines_text: str
-            if end_line is not None:
-                lines_url = f"L{start_line}-{end_line}"
-                lines_text = f"Lines {start_line}-{end_line}"
-            else:
-                lines_url = f"L{start_line}"
-                lines_text = f"Line {start_line}"
-            return f"Corresponding C source code: [{relpath} {lines_text}](https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/{commit_id}/source/texk/web2c/luatexdir/{relpath}#{lines_url})"
-
-        env.globals = {
-            "luatex_c": luatex_c,
-            "contribute": f"😱 [Types]({self.repo.get_github_blob_url(self.path)}) incomplete or incorrect? 🙏 [Please contribute!]({self.repo.github_pull_request_url})",
-        }
-
-        template = env.get_template(self.path.name)
-        return template.render()
 
 
 ManualsSpec = Union[list[str], dict[str, Optional[str]]]
