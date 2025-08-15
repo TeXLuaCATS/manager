@@ -11,6 +11,13 @@ def repo() -> Repository:
 
 
 @pytest.fixture
+def real_repo() -> Repository:
+    return Repository.clone(
+        "https://github.com/TeXLuaCATS/LuaTeX.git", "/tmp/luatex-type-definitions"
+    )
+
+
+@pytest.fixture
 def template_path() -> Path:
     return Path(__file__).resolve().parent / "files" / "template.lua"
 

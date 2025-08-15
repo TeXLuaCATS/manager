@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from manager import Repository
 
 
@@ -47,3 +48,12 @@ def test_files(repo: Repository) -> None:
         assert file.repo == repo
         count += 1
     assert count == 1
+
+
+def test_copy_subdir(real_repo: Repository, tmp_path: Path) -> None:
+    real_repo.copy_subdir("library", tmp_path)
+    assert (tmp_path / "callback.lua").exists()
+
+
+def test_real_repo(real_repo: Repository) -> None:
+    assert real_repo.github_owner_repo == "TeXLuaCATS/LuaTeX"

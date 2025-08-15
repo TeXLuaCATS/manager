@@ -395,6 +395,14 @@ def _apply(
 
 
 class Repository(Path):
+    @staticmethod
+    def clone(remote: str, dest: Union[str, Path]) -> "Repository":
+        if isinstance(dest, str):
+            dest = Path(dest)
+        if not (dest / ".git").is_dir():
+            subprocess.check_call(["git", "clone", remote, dest])
+        return Repository(dest)
+
     def __check_call(self, *args: str) -> int:
         return subprocess.check_call(args, cwd=self)
 
@@ -492,6 +500,15 @@ class Repository(Path):
             self.__remote = self.__check_output("git", "remote", "get-url", "origin")
         return self.__remote
 
+    def copy_subdir(
+        self, subdir: str | Path, dest: str | Path, delete_dest: bool = True
+    ) -> None:
+        if isinstance(dest, str):
+            dest = Path(dest)
+        if dest.exists() and delete_dest:
+            shutil.rmtree(dest)
+        shutil.copytree(self / subdir, dest, dirs_exist_ok=True)
+
     def sync_from_remote(self, branch: str = "main") -> None:
         self.__checkout(branch)
         self.__add()
@@ -514,6 +531,14 @@ class Repository(Path):
             str(self.basepath / relpath) + "/**/*." + extension, recursive=True
         ):
             yield RepoTextFile(path, self)
+
+
+def list_files(
+    path: str | Path, repo: Repository, extension: str = "lua"
+) -> Generator["RepoTextFile", Any, None]:
+    path = Path(path)
+    for path in glob.glob(str(path) + "/**/*." + extension, recursive=True):
+        yield RepoTextFile(path, repo)
 
 
 commit_ids = {"f52b099": "f52b099f3e01d53dc03b315e1909245c3d5418d3"}
