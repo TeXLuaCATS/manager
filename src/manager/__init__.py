@@ -185,16 +185,17 @@ subprojects_dict: dict[str, str] = {
 }
 
 
-class TextFile(Path):
+class TextFile:
+    path: Path
     orig_content: str
     content: str
 
-    def __init__(self, *args, **kwargs) -> None:  # type: ignore
-        super().__init__(*args, **kwargs)  # type: ignore
-        if self.exists():
-            self.content = self.read_text()
-        else:
-            self.content = ""
+    def __init__(self, path: Union[str, Path]) -> None:
+        if isinstance(path, str):
+            path = Path(path)
+        self.path = path
+        self.content = self.path.read_text()
+
         self.orig_content = self.content
 
     def _remove_duplicate_empty_lines(self) -> None:
@@ -375,7 +376,7 @@ class TextFile(Path):
     def save(self) -> None:
         if logger.isEnabledFor(logging.DEBUG):
             _diff(self.orig_content, self.content)
-        self.write_text(self.content)
+        self.path.write_text(self.content)
 
 
 def _apply(
@@ -521,26 +522,24 @@ class Repository(Path):
         for path in glob.glob(
             str(self.basepath / relpath) + "/**/*." + extension, recursive=True
         ):
-            yield RepoTextFile(self, TextFile(path))
+            yield RepoTextFile(path, self)
 
 
-class RepoTextFile:
+class RepoTextFile(TextFile):
     repo: Repository
 
-    text_file: TextFile
-
-    def __init__(self, repo: Repository, text_file: TextFile) -> None:  # type: ignore
+    def __init__(self, path: Union[str, Path], repo: Repository) -> None:  # type: ignore
+        super().__init__(path)
         self.repo = repo
-        self.text_file = text_file
 
     def render(self) -> str:
         print(self)
-        env = Environment(loader=FileSystemLoader(Path(self.text_file).parent))
+        env = Environment(loader=FileSystemLoader(self.path.parent))
 
         env.globals["contribute"] = (  # type: ignore
-            f"😱 [Types]({self.repo.get_github_blob_url(self.text_file)}) incomplete or incorrect? 🙏 [Please contribute!]({self.repo.github_pull_request_url})"
+            f"😱 [Types]({self.repo.get_github_blob_url(self.path)}) incomplete or incorrect? 🙏 [Please contribute!]({self.repo.github_pull_request_url})"
         )
-        template = env.get_template(self.text_file.name)
+        template = env.get_template(self.path.name)
         return template.render()
 
 
@@ -1029,10 +1028,8 @@ def merge(subproject: Subproject = "luatex") -> None:
     """Merge all lua files of a subproject into one big file for the CTAN upload."""
     contents: list[str] = []
 
-    def _merge(path: Path) -> None:
-        content: str = ""
-        with open(path) as src:
-            content = src.read()
+    def _merge(file: TextFile) -> None:
+        content: str = file.content
         # Remove the return statements
         content = re.sub(r"^return .+\n", "", content, flags=re.MULTILINE)
 

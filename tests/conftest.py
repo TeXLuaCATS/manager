@@ -26,5 +26,5 @@ def text_file(template_path: Path) -> TextFile:
 
 
 @pytest.fixture
-def repo_text_file(repo: Repository, text_file: TextFile) -> RepoTextFile:
-    return RepoTextFile(repo, text_file)
+def repo_text_file(repo: Repository, template_path: Path) -> RepoTextFile:
+    return RepoTextFile(template_path, repo)
