@@ -425,7 +425,12 @@ def _apply(
         fn(TextFile(path))
 
 
-class Repository(Path):
+class Repository:
+    path: Path
+
+    def __init__(self, path: Union[Path, str]):
+        self.path = Path(path)
+
     @staticmethod
     def clone(remote: str, dest: Union[str, Path]) -> "Repository":
         if isinstance(dest, str):
@@ -435,10 +440,10 @@ class Repository(Path):
         return Repository(dest)
 
     def __check_call(self, *args: str) -> int:
-        return subprocess.check_call(args, cwd=self)
+        return subprocess.check_call(args, cwd=self.path)
 
     def __check_output(self, *args: str) -> str:
-        return subprocess.check_output(args, encoding="utf-8", cwd=self).strip()
+        return subprocess.check_output(args, encoding="utf-8", cwd=self.path).strip()
 
     def __checkout(self, branch: str = "main") -> None:
         self.__check_call("git", "checkout", branch)
@@ -464,7 +469,7 @@ class Repository(Path):
         self.__check_call("git", "push", "-u", "origin", branch)
 
     def __commit(self, message: str) -> bool:
-        result = subprocess.run(["git", "commit", "-m", message], cwd=self)
+        result = subprocess.run(["git", "commit", "-m", message], cwd=self.path)
         return result.returncode == 0
 
     __basepath: Optional[Path] = None
@@ -538,7 +543,7 @@ class Repository(Path):
             dest = Path(dest)
         if dest.exists() and delete_dest:
             shutil.rmtree(dest)
-        shutil.copytree(self / subdir, dest, dirs_exist_ok=True)
+        shutil.copytree(self.path / subdir, dest, dirs_exist_ok=True)
 
     def sync_from_remote(self, branch: str = "main") -> None:
         self.__checkout(branch)
@@ -628,12 +633,12 @@ class ManagedSubproject:
     def downstream_library(self) -> Optional[Path]:
         """For example: LuaCATS/downstream/tex-luatex"""
         if self._downstream_repo:
-            return self._downstream_repo / "library"
+            return self._downstream_repo.path / "library"
 
     @property
     def manuals_path(self) -> Path:
         """For example: TeXLuaCATS/LuaTeX/resources/manual"""
-        path = self.repo / "resources" / "manual"
+        path = self.repo.path / "resources" / "manual"
         if not path.exists():
             path.mkdir(parents=True)
         return path
@@ -683,7 +688,7 @@ class ManagedSubproject:
             raise Exception("Uncommited changes found! Commit first, then retry!")
 
         if self.downstream_repo:
-            _copy_directory(dist, self.downstream_repo / "library")
+            _copy_directory(dist, self.downstream_repo.path / "library")
             self.downstream_repo.sync_to_remote(
                 "Sync with " + self.repo.latest_commit_url
             )
@@ -705,7 +710,7 @@ class ManagedSubproject:
                 "--site-name",
                 self.name,
                 "--output",
-                self.repo,
+                self.repo.path,
             ]
         )
 
@@ -732,7 +737,7 @@ class ManagedSubproject:
 
         self.repo.checkout_clean("gh-pages")
 
-        _copy_directory(dest, self.repo)
+        _copy_directory(dest, self.repo.path)
 
         self.repo.sync_to_remote("Generate docs", "gh-pages")
 
@@ -752,7 +757,7 @@ class ManagedTeXSubproject(ManagedSubproject):
                 / "downstream"
                 / f"tex-{self.lowercase_name}"
             )
-        if self._downstream_repo.exists():
+        if self._downstream_repo.path.exists():
             return self._downstream_repo
 
 
@@ -859,7 +864,7 @@ managed_subprojects: dict[str, ManagedSubproject] = {
 }
 
 parent_repo = Repository(project_base_path)
-vscode_extension_repo = Repository(project_base_path, "vscode_extension")
+vscode_extension_repo = Repository(project_base_path / "vscode_extension")
 
 
 # convert
@@ -1186,7 +1191,7 @@ def dist() -> None:
         subproject = managed_subprojects[lowercase_name]
         _copy_directory(
             subproject.dist / "library",
-            vscode_extension_repo / "library" / lowercase_name,
+            vscode_extension_repo.path / "library" / lowercase_name,
         )
         latest_commit_urls.append(subproject.repo.latest_commit_url)
     vscode_extension_repo.sync_to_remote(
