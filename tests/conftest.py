@@ -64,3 +64,11 @@ def copy_to_tmp(tmp_path: Path, files_dir: Path) -> Callable[[Union[str, Path]],
         return dest
 
     return _copy
+
+
+@pytest.fixture
+def TmpTextFile(copy_to_tmp: Callable[[str | Path], Path]) -> Callable[[str], TextFile]:
+    def _tmp(file_name: str) -> TextFile:
+        path = copy_to_tmp(file_name)
+        return TextFile(path)
+    return _tmp

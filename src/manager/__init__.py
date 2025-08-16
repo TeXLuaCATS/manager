@@ -188,21 +188,51 @@ class TextFile:
             path = Path(path)
         self.path = path
         self.content = self.path.read_text()
-
         self.orig_content = self.content
+
+    @property
+    def filename(self) -> str:
+        return self.path.name
 
     def _remove_duplicate_empty_lines(self) -> None:
         """Remove duplicate empty lines."""
         self.content = re.sub("\n\n+", "\n\n", self.content)
 
-    def remove_double_dash_comments(self) -> str:
+    def remove_double_dash_comments(self, save: bool = False) -> str:
+        """
+        Removes lines from the content that are single-line comments starting with
+        a double dash (`--`) but not followed by another dash (e.g., `---`).
+
+        Args:
+            save (bool): If True, the changes will be saved. Defaults to False.
+
+        Returns:
+            str: The finalized content after removing the specified lines.
+        """
         content: list[str] = []
         for line in self.content.splitlines():
             if not re.match(r"^(--[^-].*|--)$", line):
                 content.append(line)
-        return "\n".join(content)
+        self.content = "\n".join(content)
+        return self.finalize(save)
 
-    def remove_navigation_table(self) -> None:
+    def remove_navigation_table(self, save: bool = False) -> str:
+        """
+        Removes the navigation table and associated metadata from the content.
+
+        This method performs the following actions:
+        - Removes a helper table used for navigating the documentation.
+        - Deletes lines starting with `_N` that represent the navigation table.
+        - Removes duplicate empty lines from the content.
+        - Strips leading and trailing whitespace from the content.
+
+        Args:
+            save (bool): If True, the changes will be saved. Defaults to False.
+
+        Returns:
+            str: The finalized content after modifications.
+        """
+
         self.content = self.content.replace(
             "---A helper table to better navigate through the documentation using the\n"
             + "---outline: https://github.com/Josef-Friedrich/LuaTeX_Lua-API#navigation-table-_n\n",
@@ -214,21 +244,23 @@ class TextFile:
         self._remove_duplicate_empty_lines()
         # Remove leading and trailing whitespace
         self.content = self.content.strip() + "\n"
-        self.save()
+        return self.finalize(save)
 
-    def clean_docstrings(self) -> None:
+    def clean_docstrings(self, save: bool = False) -> str:
         """
-        Cleans and formats Lua-style docstrings in the given content string.
+        Cleans and formats the docstrings in the content by applying various transformations.
 
-        This function performs the following operations:
-        - Ensures that a docstring starts with an empty comment line.
+        This method performs the following operations:
+        - Ensures that docstrings start with an empty comment line.
         - Removes duplicate empty comment lines.
-        - Allows only one consecutive empty line in the content.
+        - Limits the number of consecutive empty lines to one.
 
         Args:
-            path: The path containing Lua-style docstrings to be cleaned.
-        """
+            save (bool): If True, saves the cleaned content. Defaults to False.
 
+        Returns:
+            str: The finalized and cleaned content.
+        """
         # Start a docstring with an empty comment line.
         self.content = re.sub(r"\n\n---(?=[^\n])", r"\n\n---\n---", self.content)
 
@@ -247,9 +279,25 @@ class TextFile:
         # content = re.sub(
         #     r"(?<!\n---)\n---@param(?=.*?\n.*?@param)", r"\n---\n---@param", content
         # )
-        self.save()
+        return self.finalize(save)
 
-    def convert_html_to_lua(self) -> None:
+    def convert_html_to_lua(self, save: bool = False) -> str:
+        """
+        Converts the HTML content in `self.content` to a Lua-compatible format.
+
+        This method performs the following transformations:
+        - Replaces `<tt>` or `<code>` tags with backticks (`).
+        - Replaces `<pre>` tags with triple backticks (```).
+        - Converts `<li>` tags to Markdown-style list items (`* `).
+        - Removes all other HTML tags.
+        - Prefixes each line with `---` to format it as a Lua comment.
+
+        Args:
+            save (bool): If True, saves the converted content. Defaults to False.
+
+        Returns:
+            str: The converted Lua-compatible content.
+        """
         self.content = re.sub(
             r"</?(tt|code)>",
             "`",
@@ -263,9 +311,21 @@ class TextFile:
         self.content = re.sub(r"<li> *", "* ", self.content)
         self.content = re.sub(r"</?.*?> *", "", self.content)
         self.content = "---" + self.content.replace("\n", "\n---")
-        self.save()
+        return self.finalize(save)
 
-    def convert_tex_to_lua(self) -> None:
+    def convert_tex_to_lua(self, save: bool = False) -> str:
+        """
+        Converts TeX-based content to Lua-compatible format by applying a series of
+        regular expression substitutions and string replacements. The method processes
+        the content to transform TeX commands, symbols, and formatting into a Lua-friendly
+        representation.
+
+        Args:
+            save (bool): If True, saves the modified content after processing. Defaults to False.
+
+        Returns:
+            str: The processed content in Lua-compatible format.
+        """
         self.content = re.sub(
             r"\\(type|typ|prm|lpr|nod|syntax|notabene|whs|cbk)[\s]*\{([^}]*)\}",
             r"`\2`",
@@ -343,7 +403,7 @@ class TextFile:
 
         self.content = re.sub(r"\n--- {10,}", r" ", self.content)
 
-        self.save()
+        return self.finalize(save)
 
     def create_navigation_table(self) -> None:
         self.content = re.sub(
@@ -396,7 +456,7 @@ class TextFile:
 
         env.globals = {
             "luatex_c": luatex_c,
-            "contribute": f"😱 [Types]({repo.get_github_blob_url(self.path)}) incomplete or incorrect? 🙏 [Please contribute!]({repo.github_pull_request_url})",
+            "contribute": f"😱 [Types]({repo.get_github_blob_url(filename=self.filename)}) incomplete or incorrect? 🙏 [Please contribute!]({repo.github_pull_request_url})",
         }
 
         template = env.get_template(self.path.name)
@@ -407,9 +467,14 @@ class TextFile:
             _diff(self.orig_content, self.content)
         self.path.write_text(self.content)
 
+    def finalize(self, save: bool = False) -> str:
+        if save:
+            self.save()
+        return self.content
+
 
 def _apply(
-    relpath: str | Path, fn: Callable[[TextFile], None], extension: str = "lua"
+    relpath: str | Path, fn: Callable[[TextFile], str], extension: str = "lua"
 ) -> None:
     """
     Applies a given function to each file matching a glob pattern.
@@ -490,13 +555,27 @@ class Repository:
         return self.__basepath
 
     def get_relpath(self, file: Path | str) -> str:
-        file = str(file)
-        file = file.replace(str(self.basepath), "")
-        return file[1:]
+        relpath = str(file)
+        relpath = relpath.replace(str(self.basepath), "")
+        if relpath != str(file):
+            return relpath[1:] # remove leading /
+        return relpath
 
-    def get_github_blob_url(self, file: Path | str) -> str:
+    def get_github_blob_url(
+        self,
+        relpath: Optional[Union[Path, str]] = None,
+        filename: Optional[Union[Path, str]] = None,
+    ) -> str:
         # https://github.com/TeXLuaCATS/LuaTeX/blob/main/library/font.lua
-        return f"https://github.com/{self.github_owner_repo}/blob/main/{self.get_relpath(file)}"
+        if (not relpath and not filename) or (relpath and filename):
+            raise Exception("Specify relpath OR filename")
+        if filename:
+            relpath = f"library/{filename}"
+
+        if relpath:
+            relpath = self.get_relpath(relpath)
+
+        return f"https://github.com/{self.github_owner_repo}/blob/main/{relpath}"
 
     @property
     def github_owner_repo(self) -> str:
@@ -1145,7 +1224,7 @@ def merge(subproject: Subproject = "luatex") -> None:
 
     contents: list[str] = []
 
-    def _merge(file: TextFile) -> None:
+    def _merge(file: TextFile) -> str:
         content: str = file.content
         # Remove the return statements
         content = re.sub(r"^return .+\n", "", content, flags=re.MULTILINE)
@@ -1159,6 +1238,7 @@ def merge(subproject: Subproject = "luatex") -> None:
         # Remove all ---@meta definitions. We add one ---@meta later
         content = content.replace("---@meta\n", "")
         contents.append(content)
+        return content
 
     _apply("dist/library/" + subproject + "/*.lua", _merge)
 
