@@ -4,7 +4,7 @@ from typing import Callable, Union
 
 import pytest
 
-from manager import Subproject, Repository, TextFile, basepath, subprojects
+from manager import Subproject, Repository, TextFile, basepath, set_basepath, subprojects
 
 
 @pytest.fixture
@@ -21,9 +21,12 @@ def real_repo() -> Repository:
 
 @pytest.fixture
 def meta_repo() -> Repository:
-    return Repository.clone(
+    repo = Repository.clone(
         "https://github.com/TeXLuaCATS/meta.git", "/tmp/TeXLuaCATS_meta"
     )
+    repo.clean()
+    set_basepath(repo.path)
+    return repo
 
 
 @pytest.fixture

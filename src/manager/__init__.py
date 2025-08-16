@@ -14,7 +14,7 @@ import urllib.request
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Generator, Iterator, Optional, Union
+from typing import Any, Generator, Iterator, Optional, Union
 
 import click
 from jinja2 import Environment, FileSystemLoader
@@ -462,37 +462,13 @@ class TextFile:
         return self.content
 
 
-def _apply(
-    relpath: str | Path, fn: Callable[[TextFile], str], extension: str = "lua"
-) -> None:
-    """
-    Applies a given function to each file matching a glob pattern.
-
-    Args:
-        glob_relpath: Relative glob pattern to match files.
-        fn: Function to apply to each matched file. The function should accept a single string argument representing the file path.
-
-    Returns:
-        None
-    """
-    for path in glob.glob(
-        str(basepath / relpath) + "/**/*." + extension, recursive=True
-    ):
-        logger.debug(
-            "Apply function %s on file %s",
-            Color.green(fn.__name__),
-            Color.green(str(path)),
-        )
-        fn(TextFile(path))
-
-
 class Folder:
     path: Path
 
     def __init__(self, path: Union[str, Path]) -> None:
         self.path = Path(path)
 
-    def list_text_files(
+    def list_files(
         self, relpath: Optional[Union[str, Path]] = None, extension: str = "lua"
     ) -> Generator["TextFile", Any, None]:
         search_path: Path
@@ -502,6 +478,19 @@ class Folder:
             search_path = self.path / relpath
         for path in glob.glob(f"{search_path}/**/*.{extension}", recursive=True):
             yield TextFile(path)
+
+    def copy(self, dest: Union[str, Path], delete_dest: bool = True) -> None:
+        _copy_directory(self.path, dest, delete_dest)
+
+    def clear(self) -> None:
+        """
+        Deletes all files and subfolders in the folder.
+        """
+        for file in self.path.glob("*"):
+            if file.is_file():
+                file.unlink()
+            elif file.is_dir():
+                shutil.rmtree(file)
 
 
 class Repository:
@@ -707,10 +696,10 @@ class Subproject:
         return basepath / "LuaCATS" / "upstream" / self.name
 
     @property
-    def library(self) -> Path:
+    def library(self) -> Folder:
         """The library folder in the main repo where type definitions are
         located, for example: ``TeXLuaCATS/LuaTeX/library``"""
-        return self.base / "library"
+        return Folder(self.base / "library")
 
     @property
     def dist(self) -> Path:
@@ -747,27 +736,31 @@ class Subproject:
         return None
 
     @property
-    def downstream_library(self) -> Optional[Path]:
+    def downstream_library(self) -> Optional[Folder]:
         """For example: ``LuaCATS/downstream/tex-luatex/library``"""
         if self._downstream_repo:
-            return self._downstream_repo.path / "library"
+            return Folder(self._downstream_repo.path / "library")
 
     @property
-    def manuals_path(self) -> Path:
+    def manuals_folder(self) -> Folder:
         """For example: ``TeXLuaCATS/LuaTeX/resources/manual``"""
         path = self.repo.path / "resources" / "manual"
         if not path.exists():
             path.mkdir(parents=True)
-        return path
+        return Folder(path)
 
     def download_manuals(self) -> None:
         def _download(src_filename: str, dest_filename: Optional[str] = None) -> None:
             if dest_filename is None:
                 dest_filename = src_filename
-            _download_url(
-                f"{self.manuals_base_url}/{src_filename}",
-                f"{self.manuals_path}/{dest_filename}",
-            )
+            dest = self.manuals_folder.path / dest_filename
+            _download_url(f"{self.manuals_base_url}/{src_filename}", str(dest))
+            dest_file = TextFile(dest)
+            lua_file = TextFile(f"{dest}.lua")
+            if dest.suffix == ".tex":
+                lua_file.write(dest_file.convert_tex_to_lua())
+            if dest.suffix == ".html":
+                lua_file.write(dest_file.convert_html_to_lua())
 
         if self.manuals is not None and self.manuals_base_url is not None:
             if isinstance(self.manuals, list):
@@ -785,24 +778,24 @@ class Subproject:
             downstream.sync_from_remote()
 
     def format(self) -> None:
-        _run_stylua(self.library)
-        _apply(self.library, lambda file: file.clean_docstrings())
+        _run_stylua(self.library.path)
+        for file in self.library.list_files():
+            file.clean_docstrings(save=True)
         if self.downstream_library:
-            _apply(
-                str(self.downstream_library) + "/**/*.lua",
-                lambda file: file.clean_docstrings(),
-            )
-            _run_stylua(self.downstream_library)
+            for file in self.downstream_library.list_files():
+                file.clean_docstrings(save=True)
+            _run_stylua(self.downstream_library.path)
 
     def distribute(self) -> None:
-        dist = self.dist / "library"
-        _copy_directory(self.library, dist)
-        _apply(dist, lambda file: file.remove_navigation_table(save=True))
-        _apply(dist, lambda file: file.clean_docstrings(save=True))
+        dist = Folder(self.dist / "library")
+        self.library.copy(dist.path)
+        for file in dist.list_files():
+            file.remove_navigation_table(save=True)
+            file.clean_docstrings(save=True)
         if not self.repo.is_commited:
             raise Exception("Uncommited changes found! Commit first, then retry!")
         if self.downstream_repo:
-            _copy_directory(dist, self.downstream_repo.path / "library")
+            dist.copy(self.downstream_repo.path / "library")
             self.downstream_repo.sync_to_remote(
                 "Sync with " + self.repo.latest_commit_url
             )
@@ -856,9 +849,9 @@ class Subproject:
         self,
     ) -> None:
         """Merge all lua files into one big file for the CTAN upload."""
-        self.distribute()
+        # self.distribute()
         contents: list[str] = []
-        for text_file in self.repo.folder.list_text_files("library"):
+        for text_file in self.repo.folder.list_files("library"):
             content: str = text_file.content
             # Remove the return statements
             content = re.sub(r"^return .+\n", "", content, flags=re.MULTILINE)
@@ -1075,13 +1068,6 @@ def cli(
         set_subproject("luaotfload")
     elif luatex:
         set_subproject("luatex")
-
-
-@cli.command()
-def convert() -> None:
-    """Convert manuals"""
-    _apply("resources/manuals", lambda file: file.convert_tex_to_lua(), extension="tex")
-    _apply("resources", lambda file: file.convert_html_to_lua(), extension="html")
 
 
 @cli.command()
