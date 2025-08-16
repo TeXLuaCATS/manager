@@ -38,21 +38,24 @@ def set_basepath(path: Union[str, Path]) -> None:
 
 current_subproject = Optional[str]
 
-# Removed by a regex: ---Copyright (C) 2022-2025 by Josef Friedrich <josef@friedrich.rocks>
-copyright_notice = """------------------------------------------------------------------------
----
----This program is free software: you can redistribute it and/or modify it
----under the terms of the GNU General Public License as published by the
----Free Software Foundation, either version 2 of the License, or (at your
----option) any later version.
----
----This program is distributed in the hope that it will be useful, but
----WITHOUT ANY WARRANTY; without even the implied warranty of
----MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
----Public License for more details.
----
----You should have received a copy of the GNU General Public License along
----with this program. If not, see <https://www.gnu.org/licenses/>."""
+copyright_notice = """-- -----------------------------------------------------------------------------
+-- Copyright (C) 2022-2025 by Josef Friedrich <josef@friedrich.rocks>
+-- -----------------------------------------------------------------------------
+--
+-- This program is free software: you can redistribute it and/or modify it
+-- under the terms of the GNU General Public License as published by the
+-- Free Software Foundation, either version 2 of the License, or (at your
+-- option) any later version.
+--
+-- This program is distributed in the hope that it will be useful, but
+-- WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+-- Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License along
+-- with this program. If not, see <https://www.gnu.org/licenses/>.
+--
+-- -----------------------------------------------------------------------------"""
 
 
 class Color:
@@ -715,7 +718,8 @@ class ManagedSubproject:
 
     @property
     def library(self) -> Path:
-        """For example: ``TeXLuaCATS/LuaTeX/library``"""
+        """The library folder in the main repo where type definitions are
+        located, for example: ``TeXLuaCATS/LuaTeX/library``"""
         return self.base / "library"
 
     @property
@@ -803,13 +807,10 @@ class ManagedSubproject:
     def distribute(self) -> None:
         dist = self.dist / "library"
         _copy_directory(self.library, dist)
-
-        _apply(dist, lambda file: file.remove_navigation_table())
-        _apply(dist, lambda file: file.clean_docstrings())
-
+        _apply(dist, lambda file: file.remove_navigation_table(save=True))
+        _apply(dist, lambda file: file.clean_docstrings(save=True))
         if not self.repo.is_commited:
             raise Exception("Uncommited changes found! Commit first, then retry!")
-
         if self.downstream_repo:
             _copy_directory(dist, self.downstream_repo.path / "library")
             self.downstream_repo.sync_to_remote(
@@ -865,24 +866,15 @@ class ManagedSubproject:
         self,
     ) -> None:
         """Merge all lua files into one big file for the CTAN upload."""
-
+        self.distribute()
         contents: list[str] = []
-
         for text_file in self.repo.files("library"):
             content: str = text_file.content
             # Remove the return statements
             content = re.sub(r"^return .+\n", "", content, flags=re.MULTILINE)
-
-            content = re.sub(
-                r"---Copyright \(C\) 2022-20\d\d by Josef Friedrich <josef@friedrich\.rocks>\n",
-                "",
-                content,
-            )
-            content = content.replace(copyright_notice, "")
             # Remove all ---@meta definitions. We add one ---@meta later
             content = content.replace("---@meta\n", "")
             contents.append(content)
-
         # Add copyright notice and meta definition at the beginning
         contents.insert(
             0,
@@ -890,12 +882,11 @@ class ManagedSubproject:
         )
         contents.insert(1, copyright_notice)
         contents.insert(2, "---@meta\n")
-
         content = "\n".join(contents)
         # Artefact of the copyright removal
         content = content.replace("\n\n---\n\n", "")
         self.merge_defintions.write(content)
-        self.merge_defintions.clean_docstrings(True)
+        self.merge_defintions.clean_docstrings(save=True)
 
 
 @dataclass
