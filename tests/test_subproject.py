@@ -1,7 +1,7 @@
-from manager import ManagedSubproject, Repository, set_basepath
+from manager import Subproject, Repository, set_basepath
 
 
-def test_merge(subproject: ManagedSubproject, meta_repo: Repository) -> None:
+def test_merge(subproject: Subproject, meta_repo: Repository) -> None:
     assert meta_repo.path.exists()
     meta_repo.clean()
     set_basepath(meta_repo.path)

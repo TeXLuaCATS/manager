@@ -14,7 +14,7 @@ import urllib.request
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Generator, Iterator, Literal, Optional, Union
+from typing import Any, Callable, Generator, Iterator, Optional, Union
 
 import click
 from jinja2 import Environment, FileSystemLoader
@@ -78,21 +78,21 @@ class Color:
     PURPLE = "\033[0;35m"
     CYAN = "\033[0;36m"
     LIGHT_GRAY = "\033[0;37m"
-    DARK_GRAY = "\033[1;30m"
-    LIGHT_RED = "\033[1;31m"
-    LIGHT_GREEN = "\033[1;32m"
-    YELLOW = "\033[1;33m"
-    LIGHT_BLUE = "\033[1;34m"
-    LIGHT_PURPLE = "\033[1;35m"
-    LIGHT_CYAN = "\033[1;36m"
-    LIGHT_WHITE = "\033[1;37m"
-    BOLD = "\033[1m"
-    FAINT = "\033[2m"
-    ITALIC = "\033[3m"
-    UNDERLINE = "\033[4m"
-    BLINK = "\033[5m"
-    NEGATIVE = "\033[7m"
-    CROSSED = "\033[9m"
+    # DARK_GRAY = "\033[1;30m"
+    # LIGHT_RED = "\033[1;31m"
+    # LIGHT_GREEN = "\033[1;32m"
+    # YELLOW = "\033[1;33m"
+    # LIGHT_BLUE = "\033[1;34m"
+    # LIGHT_PURPLE = "\033[1;35m"
+    # LIGHT_CYAN = "\033[1;36m"
+    # LIGHT_WHITE = "\033[1;37m"
+    # BOLD = "\033[1m"
+    # FAINT = "\033[2m"
+    # ITALIC = "\033[3m"
+    # UNDERLINE = "\033[4m"
+    # BLINK = "\033[5m"
+    # NEGATIVE = "\033[7m"
+    # CROSSED = "\033[9m"
     END = "\033[0m"
 
     @staticmethod
@@ -166,31 +166,6 @@ def _download_url(url: str, dest_path: str) -> None:
         data = response.read()
         with open(dest_path, "wb") as f:
             f.write(data)
-
-
-Subproject = Literal[
-    "lualatex",
-    "lualibs",
-    "luametatex",
-    "luaotfload",
-    "luatex",
-]
-
-subprojects: list[Subproject] = [
-    "lualatex",
-    "lualibs",
-    "luametatex",
-    "luaotfload",
-    "luatex",
-]
-
-subprojects_dict: dict[str, str] = {
-    "lualatex": "LuaLaTeX",
-    "lualibs": "Lualibs",
-    "luametatex": "LuaMetaTeX",
-    "luaotfload": "LuaOTFLoad",
-    "luatex": "LuaTeX",
-}
 
 
 class TextFile:
@@ -706,7 +681,7 @@ ManualsSpec = Union[list[str], dict[str, Optional[str]]]
 
 
 @dataclass
-class ManagedSubproject:
+class Subproject:
     name: str
     """The name of the subproject must match the name of its parent subfolder exactly.
     For example: LuaTeX"""
@@ -899,7 +874,7 @@ class ManagedSubproject:
 
 
 @dataclass
-class ManagedTeXSubproject(ManagedSubproject):
+class TeXSubproject(Subproject):
     @property
     def base(self) -> Path:
         return basepath / "TeXLuaCATS" / self.name
@@ -914,18 +889,18 @@ class ManagedTeXSubproject(ManagedSubproject):
             return self._downstream_repo
 
 
-managed_subprojects: dict[str, ManagedSubproject] = {
-    "lmathx": ManagedSubproject("lmathx"),
-    "lpeg": ManagedSubproject("lpeg"),
-    "luaharfbuzz": ManagedSubproject("luaharfbuzz"),
-    "luasocket": ManagedSubproject("luasocket"),
-    "luazip": ManagedSubproject("luazip"),
-    "lzlib": ManagedSubproject("lzlib"),
-    "md5": ManagedSubproject("md5"),
-    "slnunicode": ManagedSubproject("slnunicode"),
+subprojects: dict[str, Subproject] = {
+    "lmathx": Subproject("lmathx"),
+    "lpeg": Subproject("lpeg"),
+    "luaharfbuzz": Subproject("luaharfbuzz"),
+    "luasocket": Subproject("luasocket"),
+    "luazip": Subproject("luazip"),
+    "lzlib": Subproject("lzlib"),
+    "md5": Subproject("md5"),
+    "slnunicode": Subproject("slnunicode"),
     # TeX
-    "lualatex": ManagedTeXSubproject("LuaLaTeX"),
-    "lualibs": ManagedTeXSubproject(
+    "lualatex": TeXSubproject("LuaLaTeX"),
+    "lualibs": TeXSubproject(
         "Lualibs",
         manuals={
             "cld-abitoflua.tex": "01_abitoflua.tex",
@@ -956,7 +931,7 @@ managed_subprojects: dict[str, ManagedSubproject] = {
         },
         manuals_base_url="https://raw.githubusercontent.com/contextgarden/context/refs/heads/main/doc/context/sources/general/manuals/cld",
     ),
-    "luametatex": ManagedTeXSubproject(
+    "luametatex": TeXSubproject(
         "LuaMetaTeX",
         manuals={
             "luametatex-assumptions.tex": "04_assumptions.tex",
@@ -984,8 +959,8 @@ managed_subprojects: dict[str, ManagedSubproject] = {
         },
         manuals_base_url="https://raw.githubusercontent.com/contextgarden/context/refs/heads/main/doc/context/sources/general/manuals/luametatex",
     ),
-    "luaotfload": ManagedTeXSubproject("LuaOTFload"),
-    "luatex": ManagedTeXSubproject(
+    "luaotfload": TeXSubproject("LuaOTFload"),
+    "luatex": TeXSubproject(
         "LuaTeX",
         manuals={
             "luatex-backend.tex": "14_backend.tex",
@@ -1018,18 +993,18 @@ managed_subprojects: dict[str, ManagedSubproject] = {
 
 
 class SubprojectContainer:
-    __projects: dict[str, ManagedSubproject] = {}
+    __projects: dict[str, Subproject] = {}
 
-    def __init__(self, *subprojects: ManagedSubproject) -> None:
+    def __init__(self, *subprojects: Subproject) -> None:
         for subproject in subprojects:
             self.add(subproject)
 
-    def __iter__(self) -> Iterator[ManagedSubproject]:
+    def __iter__(self) -> Iterator[Subproject]:
         if current_subproject is not None:
             return iter((self.__projects[current_subproject],))
         return iter(self.__projects.values())
 
-    def __getitem__(self, key: str) -> ManagedSubproject:
+    def __getitem__(self, key: str) -> Subproject:
         if current_subproject is not None:
             return self.__projects[current_subproject]
         return self.__projects[key]
@@ -1039,28 +1014,30 @@ class SubprojectContainer:
             return 1
         return self.__projects.__sizeof__()
 
-    def add(
-        self, subprojects: ManagedSubproject | dict[str, ManagedSubproject]
-    ) -> None:
+    def add(self, subprojects: Subproject | dict[str, Subproject]) -> None:
         if isinstance(subprojects, dict):
             for name, subproject in subprojects.items():
                 self.__projects[name] = subproject
         else:
             self.__projects[subprojects.lowercase_name] = subprojects
 
-    def get(self, name: str) -> ManagedSubproject:
+    def get(self, name: str) -> Subproject:
         return self.__projects[name.lower()]
+
+    @property
+    def names(self) -> list[str]:
+        return list(self.__projects.keys())
 
 
 projects = SubprojectContainer()
-projects.add(managed_subprojects)
+projects.add(subprojects)
 
 parent_repo = Repository(basepath)
 vscode_extension_repo = Repository(basepath / "vscode_extension")
 
 
-def get_subproject(name: str) -> ManagedSubproject:
-    return managed_subprojects[name]
+def get_subproject(name: str) -> Subproject:
+    return subprojects[name]
 
 
 @click.group()
@@ -1115,7 +1092,7 @@ def convert() -> None:
     "-p",
     "--subproject",
     help="Select the subproject.",
-    type=click.Choice(subprojects),
+    type=click.Choice(projects.names),
     default="luatex",
 )
 @click.option(
@@ -1132,7 +1109,7 @@ def convert() -> None:
 def example(
     relpath: str,
     luaonly: bool = False,
-    subproject: Subproject = "luatex",
+    subproject: str = "luatex",
     print_docstring: bool = False,
 ) -> None:
     """Compile examples in the folder ./examples
@@ -1311,14 +1288,14 @@ def example(
 @cli.command()
 def format() -> None:
     """Format the lua docstrings (Remove duplicate empty comment lines, start docstring with an empty line)"""
-    for _, subproject in managed_subprojects.items():
+    for _, subproject in subprojects.items():
         subproject.format()
 
 
 @cli.command()
 def manuals() -> None:
     """Download the TeX or HTML sources of the manuals."""
-    for _, subproject in managed_subprojects.items():
+    for _, subproject in subprojects.items():
         subproject.download_manuals()
 
 
@@ -1332,13 +1309,13 @@ def merge() -> None:
 @cli.command()
 def dist() -> None:
     "Copy library to dist and remove the navigation table."
-    for _, subproject in managed_subprojects.items():
+    for _, subproject in subprojects.items():
         subproject.distribute()
     # vscode extension
     vscode_extension_repo.checkout_clean("main")
     latest_commit_urls: list[str] = []
     for lowercase_name in ["lualatex", "lualibs", "luametatex", "luaotfload", "luatex"]:
-        subproject = managed_subprojects[lowercase_name]
+        subproject = subprojects[lowercase_name]
         _copy_directory(
             subproject.dist / "library",
             vscode_extension_repo.path / "library" / lowercase_name,
@@ -1388,7 +1365,7 @@ def rewrap(path: str) -> None:
 @cli.command()
 def submodule() -> None:
     """Update all submodules"""
-    for _, subproject in managed_subprojects.items():
+    for _, subproject in subprojects.items():
         subproject.sync_from_remote()
 
 
