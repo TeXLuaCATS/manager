@@ -39,12 +39,11 @@ def test_remove_double_dash_comments(TmpTextFile: Callable[[str], TextFile]) -> 
         == "\n_N = {}\n\n---\n---@meta\n\n---\n---This is the TeX lib.\ntex = {}"
     )
 
-def test_manuals(TmpTextFile: Callable[[str], TextFile]) -> None:
+def test_convert_tex_to_lua(TmpTextFile: Callable[[str], TextFile]) -> None:
     file = TmpTextFile("luatex-manual.tex")
     assert (
         file.convert_tex_to_lua()
-        == """---% language=uk
----
+        == """---
 ---# Preamble
 ---
 ---This is a reference manual, not a tutorial. This means that we discuss changes
@@ -59,9 +58,9 @@ def test_manuals(TmpTextFile: Callable[[str], TextFile]) -> None:
 ---Reading “The *TeX* Book” by Donald Knuth is a good investment of time
 ---then also because it's good to know where it all started. A more summarizing
 ---overview is given by “*TeX* by Topic” by Victor Eijkhout. You might
----want to peek in “The *e-TeX* manual” and documentation about *PDF*TEX.
+---want to peek in “The *e-TeX* manual” and documentation about *PDFTeX*.
 ---
----But \\unknown\\ if you're here because of *Lua*, then all you need to know is that
+---But ... if you're here because of *Lua*, then all you need to know is that
 ---you can call it from within a run. The macro package that you use probably will
 ---provide a few wrapper mechanisms but the basic `directlua` command that
 ---does the job is:

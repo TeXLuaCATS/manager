@@ -330,6 +330,7 @@ class TextFile:
         tuple[tuple[str, str]]
 
         replacements = (
+            (r"(\n|^)% .*\n", ""),
             (
                 r"\\(type|typ|prm|lpr|nod|syntax|notabene|whs|cbk)[\s]*\{([^}]*)\}",
                 r"`\2`",
@@ -349,6 +350,7 @@ class TextFile:
             (r"\\CONTEXT\\?", "*ConTeXt*"),
             (r"\\LUATEX\\?", "*LuaTeX*"),
             (r"\\LUA\\?", "*Lua*"),
+            (r"\\PDFTEX\\?", "*PDFTeX*"),
             (r"\\PDF\\?", "*PDF*"),
             (r"\\OPENTYPE\\?", "*OpenType*"),
             (r"\\TRUETYPE\\?", "*TrueType*"),
@@ -383,6 +385,7 @@ class TextFile:
                 r"--- `(.*)` +(float|string|boolean|number|table|.*node) +",
                 r"---@field \1 \2 # ",
             ),
+            (r"\\unknown\\", r"..."),
             (r"\n--- {10,}", r" "),
         )
 
