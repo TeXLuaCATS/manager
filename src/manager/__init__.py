@@ -203,6 +203,7 @@ class TextFile:
         return self.path.name
 
     def write(self, text: str) -> None:
+        logger.info("Write to %s", Color.green(self.path))
         self.path.write_text(text)
 
     def _remove_duplicate_empty_lines(self) -> None:
@@ -1023,7 +1024,6 @@ def get_subproject(name: str) -> ManagedSubproject:
     return managed_subprojects[name]
 
 
-
 @click.group()
 @click.option("-d", "--debug", is_flag=True)
 @click.option("-b", "--base-path", metavar="PATH")
@@ -1286,11 +1286,10 @@ def manuals() -> None:
 
 
 @cli.command()
-@click.argument("subproject")
 def merge() -> None:
     """Merge all lua files of a subproject into one big file for the CTAN upload."""
     for _, subproject in managed_subprojects.items():
-        subproject.format()
+        subproject.merge()
 
 
 @cli.command()
