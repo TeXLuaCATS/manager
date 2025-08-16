@@ -27,8 +27,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-project_base_path: Path = Path.cwd()
-"""The parent directory of this repository."""
+basepath: Path = Path.cwd()
+"""The parent directory of the meta repository (https://github.com/TeXLuaCATS/meta)."""
+
+
+def set_basepath(path: Union[str, Path]) -> None:
+    global basepath
+    basepath = Path(path)
+
 
 current_subproject = Optional[str]
 
@@ -98,7 +104,7 @@ def _run_stylua(path: Path | str) -> None:
         [
             "/usr/local/bin/stylua",
             "--config-path",
-            project_base_path / "stylua.toml",
+            basepath / "stylua.toml",
             path,
         ]
     )
@@ -187,12 +193,17 @@ class TextFile:
         if isinstance(path, str):
             path = Path(path)
         self.path = path
+        if not self.path.exists():
+            self.path.touch()
         self.content = self.path.read_text()
         self.orig_content = self.content
 
     @property
     def filename(self) -> str:
         return self.path.name
+
+    def write(self, text: str) -> None:
+        self.path.write_text(text)
 
     def _remove_duplicate_empty_lines(self) -> None:
         """Remove duplicate empty lines."""
@@ -480,7 +491,7 @@ def _apply(
         None
     """
     for path in glob.glob(
-        str(project_base_path / relpath) + "/**/*." + extension, recursive=True
+        str(basepath / relpath) + "/**/*." + extension, recursive=True
     ):
         logger.debug(
             "Apply function %s on file %s",
@@ -498,10 +509,29 @@ class Repository:
 
     @staticmethod
     def clone(remote: str, dest: Union[str, Path]) -> "Repository":
+        """
+        Clone a remote Git repository to a specified destination.
+        The repository will only be cloned if ``dest`` does not contain a ``.git`` folder.
+        All submodules are cloned to.
+
+        Args:
+            remote: The URL of the remote Git repository to clone.
+            dest: The destination path where the repository
+                should be cloned. Can be a string or a Path object.
+
+        Returns:
+            Repository: An instance of the ``Repository`` class representing the
+            cloned repository.
+
+        Raises:
+            subprocess.CalledProcessError: If the `git clone` command fails.
+        """
         if isinstance(dest, str):
             dest = Path(dest)
         if not (dest / ".git").is_dir():
-            subprocess.check_call(["git", "clone", remote, dest])
+            subprocess.check_call(
+                ["git", "clone", "--recurse-submodules", "-j4", remote, dest]
+            )
         return Repository(dest)
 
     def __check_call(self, *args: str) -> int:
@@ -674,29 +704,42 @@ class ManagedSubproject:
 
     @property
     def lowercase_name(self) -> str:
-        """For example: luatex"""
+        """For example: ``luatex``"""
         return self.name.lower()
 
     @property
     def base(self) -> Path:
-        """For example: LuaCATS/upstream/luasocket"""
-        return project_base_path / "LuaCATS" / "upstream" / self.name
+        """For example: ``LuaCATS/upstream/luasocket``"""
+        return basepath / "LuaCATS" / "upstream" / self.name
 
     @property
     def library(self) -> Path:
-        """For example: TeXLuaCATS/LuaTeX/library"""
+        """For example: ``TeXLuaCATS/LuaTeX/library``"""
         return self.base / "library"
 
     @property
     def dist(self) -> Path:
-        """For example: dist/LuaTeX"""
-        return project_base_path / "dist" / self.name
+        """The directory where the compiled Lua sources are temporarily stored
+        for distribution, for example: ``dist/LuaTeX``.
+
+        The directory will be created if the folder does not exist.
+        """
+        path = basepath / "dist" / self.name
+        if not path.exists():
+            path.mkdir(parents=True)
+        return path
+
+    @property
+    def merge_defintions(self) -> TextFile:
+        """The text file where the merged definitions are stored."""
+        return TextFile(self.dist / "merged_defintions.lua")
 
     _repo: Optional[Repository] = None
 
     @property
     def repo(self) -> Repository:
-        """For example: LuaCATS/upstream/luasocket"""
+        """The main Git repository, where the definitions are developed and
+        written, for example: ``LuaCATS/upstream/luasocket``"""
         if not self._repo:
             self._repo = Repository(self.base)
         return self._repo
@@ -705,18 +748,18 @@ class ManagedSubproject:
 
     @property
     def downstream_repo(self) -> Optional[Repository]:
-        """For example: TeXLuaCATS/LuaTeX/resources/manual"""
+        """For example: ``LuaCATS/downstream/tex-luatex``"""
         return None
 
     @property
     def downstream_library(self) -> Optional[Path]:
-        """For example: LuaCATS/downstream/tex-luatex"""
+        """For example: ``LuaCATS/downstream/tex-luatex/library``"""
         if self._downstream_repo:
             return self._downstream_repo.path / "library"
 
     @property
     def manuals_path(self) -> Path:
-        """For example: TeXLuaCATS/LuaTeX/resources/manual"""
+        """For example: ``TeXLuaCATS/LuaTeX/resources/manual``"""
         path = self.repo.path / "resources" / "manual"
         if not path.exists():
             path.mkdir(parents=True)
@@ -775,10 +818,10 @@ class ManagedSubproject:
     def generate_markdown_docs(self, commit_id: str) -> None:
         self.distribute()
 
-        resources = project_base_path / "resources" / "html-docs"
+        resources = basepath / "resources" / "html-docs"
 
         src = self.dist / "library"
-        dest = project_base_path / "dist" / self.dist / "docs"
+        dest = basepath / "dist" / self.dist / "docs"
 
         subprocess.check_call(
             [
@@ -813,28 +856,58 @@ class ManagedSubproject:
         )
 
         subprocess.check_call(["mkdocs", "build"], cwd=dest)
-
         self.repo.checkout_clean("gh-pages")
-
         _copy_directory(dest, self.repo.path)
-
         self.repo.sync_to_remote("Generate docs", "gh-pages")
+
+    def merge(
+        self,
+    ) -> None:
+        """Merge all lua files into one big file for the CTAN upload."""
+
+        contents: list[str] = []
+
+        for text_file in self.repo.files("library"):
+            content: str = text_file.content
+            # Remove the return statements
+            content = re.sub(r"^return .+\n", "", content, flags=re.MULTILINE)
+
+            content = re.sub(
+                r"---Copyright \(C\) 2022-20\d\d by Josef Friedrich <josef@friedrich\.rocks>\n",
+                "",
+                content,
+            )
+            content = content.replace(copyright_notice, "")
+            # Remove all ---@meta definitions. We add one ---@meta later
+            content = content.replace("---@meta\n", "")
+            contents.append(content)
+
+        # Add copyright notice and meta definition at the beginning
+        contents.insert(
+            0,
+            f"---Copyright (C) 2022-{datetime.now().year} by Josef Friedrich <josef@friedrich.rocks>",
+        )
+        contents.insert(1, copyright_notice)
+        contents.insert(2, "---@meta\n")
+
+        content = "\n".join(contents)
+        # Artefact of the copyright removal
+        content = content.replace("\n\n---\n\n", "")
+        self.merge_defintions.write(content)
+        self.merge_defintions.clean_docstrings(True)
 
 
 @dataclass
 class ManagedTeXSubproject(ManagedSubproject):
     @property
     def base(self) -> Path:
-        return project_base_path / "TeXLuaCATS" / self.name
+        return basepath / "TeXLuaCATS" / self.name
 
     @property
     def downstream_repo(self) -> Optional[Repository]:
         if not self._downstream_repo:
             self._downstream_repo = Repository(
-                project_base_path
-                / "LuaCATS"
-                / "downstream"
-                / f"tex-{self.lowercase_name}"
+                basepath / "LuaCATS" / "downstream" / f"tex-{self.lowercase_name}"
             )
         if self._downstream_repo.path.exists():
             return self._downstream_repo
@@ -942,11 +1015,13 @@ managed_subprojects: dict[str, ManagedSubproject] = {
     ),
 }
 
-parent_repo = Repository(project_base_path)
-vscode_extension_repo = Repository(project_base_path / "vscode_extension")
+parent_repo = Repository(basepath)
+vscode_extension_repo = Repository(basepath / "vscode_extension")
 
 
-# convert
+def get_subproject(name: str) -> ManagedSubproject:
+    return managed_subprojects[name]
+
 
 
 @click.group()
@@ -971,12 +1046,12 @@ def cli(
     luatex: Optional[str],
 ) -> None:
     """Manager for the TeXLuaCATS project."""
-    global project_base_path
+    global basepath
     global current_subproject
     if debug:
         logger.setLevel(logging.DEBUG)
     if base_path is not None:
-        project_base_path = Path(base_path)
+        set_basepath(base_path)
 
     if lualatex:
         current_subproject = "lualatex"
@@ -1107,14 +1182,14 @@ def example(
         print_docstring: bool = False,
     ) -> None:
         """Run and execute one example file"""
-        relpath: str = str(src).replace(str(project_base_path / "examples") + "/", "")
+        relpath: str = str(src).replace(str(basepath / "examples") + "/", "")
         print(f"Example: {Color.green(relpath)}")
 
         logger.debug(f"Example source: {src}")
 
         # Lua require does not support absolute paths, so we are running all
         # examples from this repos base path
-        dest_lua: Path = project_base_path / "tmp.lua"
+        dest_lua: Path = basepath / "tmp.lua"
 
         src_code = src.read_text()
 
@@ -1130,7 +1205,7 @@ def example(
         src_code_cleaned = _clean(src_code)
         src_code_cleaned, tex_markup = _extract_tex_markup(src_code_cleaned)
 
-        src_cleaned = project_base_path / "tmp_cleaned.lua"
+        src_cleaned = basepath / "tmp_cleaned.lua"
         src_cleaned.write_text(src_code_cleaned)
 
         _run_pygmentize(src_cleaned)
@@ -1148,7 +1223,7 @@ def example(
         dest_tex: Optional[Path] = None
 
         if not luaonly:
-            dest_tex = project_base_path / "tmp.tex"
+            dest_tex = basepath / "tmp.tex"
             _write_tex_file(dest_tex, tex_markup)
 
         dest: Path
@@ -1165,7 +1240,7 @@ def example(
             [*args, "--halt-on-error", str(dest)],
             capture_output=True,
             text=True,
-            cwd=project_base_path,
+            cwd=basepath,
             timeout=5,
         )
         output = result.stdout
@@ -1177,9 +1252,9 @@ def example(
 
     src: Path
     if relpath.startswith("examples"):
-        src = project_base_path / relpath
+        src = basepath / relpath
     else:
-        src = project_base_path / "examples" / subproject / relpath
+        src = basepath / "examples" / subproject / relpath
 
     if not src.exists():
         with_extension = Path(str(src) + ".lua")
@@ -1212,51 +1287,10 @@ def manuals() -> None:
 
 @cli.command()
 @click.argument("subproject")
-def merge(subproject: Subproject = "luatex") -> None:
+def merge() -> None:
     """Merge all lua files of a subproject into one big file for the CTAN upload."""
-
-    contents: list[str] = []
-
-    def _merge(file: TextFile) -> str:
-        content: str = file.content
-        # Remove the return statements
-        content = re.sub(r"^return .+\n", "", content, flags=re.MULTILINE)
-
-        content = re.sub(
-            r"---Copyright \(C\) 2022-20\d\d by Josef Friedrich <josef@friedrich\.rocks>\n",
-            "",
-            content,
-        )
-        content = content.replace(copyright_notice, "")
-        # Remove all ---@meta definitions. We add one ---@meta later
-        content = content.replace("---@meta\n", "")
-        contents.append(content)
-        return content
-
-    _apply("dist/library/" + subproject + "/*.lua", _merge)
-
-    # Add copyright notice and meta definition at the beginning
-    contents.insert(
-        0,
-        f"---Copyright (C) 2022-{datetime.now().year} by Josef Friedrich <josef@friedrich.rocks>",
-    )
-    contents.insert(1, copyright_notice)
-    contents.insert(2, "---@meta\n")
-
-    dist_dir: Path = project_base_path / "luatex-type-definitions"
-    dist_dir.mkdir(parents=True, exist_ok=True)
-
-    content = "\n".join(contents)
-    # Artefact of the copyright removal
-    content = content.replace("\n\n---\n\n", "")
-    # content = _clean_docstrings(content)
-
-    dest = dist_dir / (subproject + "-type-definitions.lua")
-
-    with open(dest, "w") as f:
-        f.write(content)
-
-    TextFile(dest).clean_docstrings()
+    for _, subproject in managed_subprojects.items():
+        subproject.format()
 
 
 @cli.command()

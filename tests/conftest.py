@@ -4,18 +4,25 @@ from typing import Callable, Union
 
 import pytest
 
-from manager import Repository, TextFile, project_base_path
+from manager import Repository, TextFile, basepath
 
 
 @pytest.fixture
 def repo() -> Repository:
-    return Repository(project_base_path)
+    return Repository(basepath)
 
 
 @pytest.fixture
 def real_repo() -> Repository:
     return Repository.clone(
         "https://github.com/TeXLuaCATS/LuaTeX.git", "/tmp/luatex-type-definitions"
+    )
+
+
+@pytest.fixture
+def meta_repo() -> Repository:
+    return Repository.clone(
+        "https://github.com/TeXLuaCATS/meta.git", "/tmp/TeXLuaCATS_meta"
     )
 
 
@@ -71,4 +78,5 @@ def TmpTextFile(copy_to_tmp: Callable[[str | Path], Path]) -> Callable[[str], Te
     def _tmp(file_name: str) -> TextFile:
         path = copy_to_tmp(file_name)
         return TextFile(path)
+
     return _tmp
