@@ -14,7 +14,7 @@ import urllib.request
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Generator, Literal, Optional, Union
+from typing import Any, Callable, Generator, Iterator, Literal, Optional, Union
 
 import click
 from jinja2 import Environment, FileSystemLoader
@@ -36,7 +36,13 @@ def set_basepath(path: Union[str, Path]) -> None:
     basepath = Path(path)
 
 
-current_subproject = Optional[str]
+current_subproject: Optional[str] = None
+
+
+def set_subproject(subproject: Optional[str]) -> None:
+    global current_subproject
+    current_subproject = subproject
+
 
 copyright_notice = """-- -----------------------------------------------------------------------------
 -- Copyright (C) 2022-2025 by Josef Friedrich <josef@friedrich.rocks>
@@ -649,6 +655,9 @@ class Repository:
             self.__remote = self.__check_output("git", "remote", "get-url", "origin")
         return self.__remote
 
+    def clean(self) -> None:
+        self.__check_call("git", "clean", "-dfx")
+
     def copy_subdir(
         self, subdir: str | Path, dest: str | Path, delete_dest: bool = True
     ) -> None:
@@ -1007,6 +1016,45 @@ managed_subprojects: dict[str, ManagedSubproject] = {
     ),
 }
 
+
+class SubprojectContainer:
+    __projects: dict[str, ManagedSubproject] = {}
+
+    def __init__(self, *subprojects: ManagedSubproject) -> None:
+        for subproject in subprojects:
+            self.add(subproject)
+
+    def __iter__(self) -> Iterator[ManagedSubproject]:
+        if current_subproject is not None:
+            return iter((self.__projects[current_subproject],))
+        return iter(self.__projects.values())
+
+    def __getitem__(self, key: str) -> ManagedSubproject:
+        if current_subproject is not None:
+            return self.__projects[current_subproject]
+        return self.__projects[key]
+
+    def __len__(self) -> int:
+        if current_subproject is not None:
+            return 1
+        return self.__projects.__sizeof__()
+
+    def add(
+        self, subprojects: ManagedSubproject | dict[str, ManagedSubproject]
+    ) -> None:
+        if isinstance(subprojects, dict):
+            for name, subproject in subprojects.items():
+                self.__projects[name] = subproject
+        else:
+            self.__projects[subprojects.lowercase_name] = subprojects
+
+    def get(self, name: str) -> ManagedSubproject:
+        return self.__projects[name.lower()]
+
+
+projects = SubprojectContainer()
+projects.add(managed_subprojects)
+
 parent_repo = Repository(basepath)
 vscode_extension_repo = Repository(basepath / "vscode_extension")
 
@@ -1037,23 +1085,21 @@ def cli(
     luatex: Optional[str],
 ) -> None:
     """Manager for the TeXLuaCATS project."""
-    global basepath
-    global current_subproject
     if debug:
         logger.setLevel(logging.DEBUG)
     if base_path is not None:
         set_basepath(base_path)
 
     if lualatex:
-        current_subproject = "lualatex"
+        set_subproject("lualatex")
     elif lualibs:
-        current_subproject = "lualibs"
+        set_subproject("lualibs")
     elif luametatex:
-        current_subproject = "luametatex"
+        set_subproject("luametatex")
     elif luaotfload:
-        current_subproject = "luaotfload"
+        set_subproject("luaotfload")
     elif luatex:
-        current_subproject = "luatex"
+        set_subproject("luatex")
 
 
 @cli.command()
@@ -1279,8 +1325,8 @@ def manuals() -> None:
 @cli.command()
 def merge() -> None:
     """Merge all lua files of a subproject into one big file for the CTAN upload."""
-    for _, subproject in managed_subprojects.items():
-        subproject.merge()
+    for project in projects:
+        project.merge()
 
 
 @cli.command()
