@@ -350,8 +350,9 @@ class TextFile:
             (r"\\CONTEXT\\?", "*ConTeXt*"),
             (r"\\LUATEX\\?", "*LuaTeX*"),
             (r"\\LUA\\?", "*Lua*"),
-            (r"\\PDFTEX\\?", "*PDFTeX*"),
+            (r"\\PDFTEX\\?", "*pdfTeX*"),
             (r"\\PDF\\?", "*PDF*"),
+            (r"\\DVI\\?", "*DVI*"),
             (r"\\OPENTYPE\\?", "*OpenType*"),
             (r"\\TRUETYPE\\?", "*TrueType*"),
             (r"\\MICROSOFT\\?", "*Microsoft*"),
@@ -368,7 +369,7 @@ class TextFile:
             (r"\|-\|", "-"),
             (r"\|/\|", "/"),
             (r"\\NC \\NR", ""),
-            (r"\\(NC|DB|BC|LL|TB|stoptabulate)", ""),
+            (r"\\(NC|NR|DB|BC|LL|TB|stoptabulate)", ""),
             (r"\\starttabulate\[.*?\]", ""),
             (r"etc\\.\\", "etc."),
             (
@@ -378,15 +379,16 @@ class TextFile:
             (r"\\(sub)*section\{(.*?)\}", r"# \2"),
             (r"\\(libindex|topicindex)\s*\{[^}]+\}", ""),
             (
-                r"---\\stop(sub)*section",
-                "----------------------------------------------------------------\n\n",
+                r"\\stop(sub)*section",
+                "",
             ),
             (
                 r"--- `(.*)` +(float|string|boolean|number|table|.*node) +",
                 r"---@field \1 \2 # ",
             ),
-            (r"\\unknown\\", r"..."),
-            (r"\n--- {10,}", r" "),
+            (r"\\unknown\\", "..."),
+            (r"\n--- {10,}", " "),
+            (r"[ \t]*\n", "\n"),
         )
 
         for pattern, replacement in replacements:

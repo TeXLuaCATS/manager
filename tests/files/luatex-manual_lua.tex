@@ -1,0 +1,143 @@
+% language=uk
+
+\environment luatex-style
+
+\startcomponent luatex-lua
+
+\startchapter[reference=lua,title={Using \LUATEX}]
+
+\startsection[title={Initialization},reference=init]
+
+\startsubsection[title={\LUATEX\ as a \LUA\ interpreter}]
+
+\topicindex {initialization}
+\topicindex {\LUA+interpreter}
+
+There are some situations that make \LUATEX\ behave like a standalone \LUA\
+interpreter:
+
+\startitemize[packed]
+\startitem
+    if a \type {--luaonly} option is given on the commandline, or
+\stopitem
+\startitem
+    if the executable is named \type {texlua} or \type {luatexlua}, or
+\stopitem
+\startitem
+    if the only non|-|option argument (file) on the commandline has the extension
+    \type {lua} or \type {luc}.
+\stopitem
+\stopitemize
+
+In this mode, it will set \LUA's \type {arg[0]} to the found script name, pushing
+preceding options in negative values and the rest of the command line in the
+positive values, just like the \LUA\ interpreter.
+
+\LUATEX\ will exit immediately after executing the specified \LUA\ script and is,
+in effect, a somewhat bulky stand alone \LUA\ interpreter with a bunch of extra
+preloaded libraries.
+
+\stopsubsection
+
+\startsubsection[title={\LUATEX\ as a \LUA\ byte compiler}]
+
+\topicindex {\LUA+byte code}
+
+There are two situations that make \LUATEX\ behave like the \LUA\ byte compiler:
+
+\startitemize[packed]
+\startitem if a \type {--luaconly} option is given on the command line, or \stopitem
+\startitem if the executable is named \type {texluac} \stopitem
+\stopitemize
+
+In this mode, \LUATEX\ is exactly like \type {luac} from the stand alone \LUA\
+distribution, except that it does not have the \type {-l} switch, and that it
+accepts (but ignores) the \type {--luaconly} switch. The current version of \LUA\
+can dump bytecode using \type {string.dump} so we might decide to drop this
+version of \LUATEX.
+
+\stopsubsection
+
+\startsubsection[title={Other commandline processing}]
+
+\topicindex {command line}
+
+When the \LUATEX\ executable starts, it looks for the \type {--lua} command line
+option. If there is no \type {--lua} option, the command line is interpreted in a
+similar fashion as the other \TEX\ engines. Some options are accepted but have no
+consequence. The following command|-|line options are understood:
+
+\starttabulate[|l|p|]
+\DB commandline argument                \BC explanation \NC \NR
+\TB
+\NC \type{--credits}                    \NC display credits and exit \NC \NR
+\NC \type{--debug-format}               \NC enable format debugging \NC \NR
+\NC \type{--draftmode}                  \NC switch on draft mode i.e.\ generate no output in \PDF\ mode \NC \NR
+\NC \type{--[no-]check-dvi-total-pages} \NC exit when DVI exceeds 65535 pages (default: check) \NC \NR
+\NC \type{--[no-]file-line-error}       \NC disable/enable \type {file:line:error} style messages \NC \NR
+\NC \type{--[no-]file-line-error-style} \NC aliases of \type {--[no-]file-line-error} \NC \NR
+\NC \type{--fmt=FORMAT}                 \NC load the format file \type {FORMAT} \NC\NR
+\NC \type{--halt-on-error}              \NC stop processing at the first error\NC \NR
+\NC \type{--help}                       \NC display help and exit \NC\NR
+\NC \type{--ini}                        \NC be \type {iniluatex}, for dumping formats \NC\NR
+\NC \type{--interaction=STRING}         \NC set interaction mode: \type {batchmode}, \type {nonstopmode},
+                                            \type {scrollmode} or \type {errorstopmode} \NC \NR
+\NC \type{--jobname=STRING}             \NC set the job name to \type {STRING} \NC \NR
+\NC \type{--kpathsea-debug=NUMBER}      \NC set path searching debugging flags according to the bits of
+                                           \type {NUMBER} \NC \NR
+\NC \type{--lua=FILE}                   \NC load and execute a \LUA\ initialization script \NC\NR
+\NC \type{--luadebug}                   \NC enable the \type{debug} library\NC\NR
+\NC \type{--[no-]mktex=FMT}             \NC disable/enable \type {mktexFMT} generation with \type {FMT} is
+                                            \type {tex} or \type {tfm} \NC \NR
+\NC \type{--nosocket}                   \NC disable the \LUA\ socket library \NC\NR
+\NC \type{--no-socket}                  \NC disable the \LUA\ socket library \NC\NR
+\NC \type{--socket}                     \NC enable the \LUA\ socket library \NC\NR
+\NC \type{--output-comment=STRING}      \NC use \type {STRING} for \DVI\ file comment instead of date (no
+                                            effect for \PDF) \NC \NR
+\NC \type{--output-directory=DIR}       \NC use \type {DIR} as the directory to write files to \NC \NR
+\NC \type{--output-format=FORMAT}       \NC use \type {FORMAT} for job output; \type {FORMAT} is \type {dvi}
+                                            or \type {pdf} \NC \NR
+\NC \type{--progname=STRING}            \NC set the program name to \type {STRING} \NC \NR
+\NC \type{--recorder}                   \NC enable filename recorder \NC \NR
+\NC \type{--safer}                      \NC disable easily exploitable \LUA\ commands \NC\NR
+\NC \type{--[no-]shell-escape}          \NC disable/enable system calls \NC \NR
+\NC \type{--shell-restricted}           \NC restrict system calls to a list of commands given in \type
+                                            {texmf.cnf} \NC \NR
+\NC \type{--synctex=NUMBER}             \NC enable \type {synctex} \NC \NR
+\NC \type{--utc}                        \NC use utc times when applicable \NC \NR
+\NC \type{--version}                    \NC display version and exit \NC \NR
+\LL
+\stoptabulate
+
+We don't support \prm {write} 18 because \type {os.execute} can do the same. It
+simplifies the code and makes more write targets possible.
+
+The value to use for \prm {jobname} is decided as follows:
+
+\startitemize
+\startitem
+    If \type {--jobname} is given on the command line, its argument will be the
+    value for \prm {jobname}, without any changes. The argument will not be
+    used for actual input so it need not exist. The \type {--jobname} switch only
+    controls the \prm {jobname} setting.
+\stopitem
+\startitem
+    Otherwise, \prm {jobname} will be the name of the first file that is read
+    from the file system, with any path components and the last extension (the
+    part following the last \type {.}) stripped off.
+\stopitem
+\startitem
+    There is an exception to the previous point: if the command line goes into
+    interactive mode (by starting with a command) and there are no files input
+    via \prm {everyjob} either, then the \prm {jobname} is set to \type
+    {texput} as a last resort.
+\stopitem
+\stopitemize
+
+The file names for output files that are generated automatically are created by
+attaching the proper extension (\type {log}, \type {pdf}, etc.) to the found
+\prm {jobname}. These files are created in the directory pointed to by \type
+{--output-directory}, or in the current directory, if that switch is not present.
+If \type{--output-directory} is not empty, its value it's copied to the
+\type{TEXMF_OUTPUT_DIRECTORY} env. variable; if it's empty, the value of
+\type{TEXMF_OUTPUT_DIRECTORY} is the value of the output directory.
