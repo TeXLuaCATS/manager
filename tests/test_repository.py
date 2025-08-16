@@ -42,9 +42,9 @@ def test_get_remote(repo: Repository) -> None:
     assert repo.remote == "git@github.com:TeXLuaCATS/manager.git"
 
 
-def test_files(repo: Repository) -> None:
+def test_folder(repo: Repository) -> None:
     count = 0
-    for _ in repo.files("tests/files"):
+    for _ in repo.folder.list_text_files("tests/files"):
         count += 1
     assert count == 2
 

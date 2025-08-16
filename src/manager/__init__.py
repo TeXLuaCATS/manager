@@ -486,6 +486,24 @@ def _apply(
         fn(TextFile(path))
 
 
+class Folder:
+    path: Path
+
+    def __init__(self, path: Union[str, Path]) -> None:
+        self.path = Path(path)
+
+    def list_text_files(
+        self, relpath: Optional[Union[str, Path]] = None, extension: str = "lua"
+    ) -> Generator["TextFile", Any, None]:
+        search_path: Path
+        if relpath is None:
+            search_path = self.path
+        else:
+            search_path = self.path / relpath
+        for path in glob.glob(f"{search_path}/**/*.{extension}", recursive=True):
+            yield TextFile(path)
+
+
 class Repository:
     path: Path
 
@@ -561,6 +579,10 @@ class Repository:
                 self.__check_output("git", "rev-parse", "--show-toplevel")
             )
         return self.__basepath
+
+    @property
+    def folder(self) -> Folder:
+        return Folder(self.path)
 
     def get_relpath(self, file: Path | str) -> str:
         relpath = str(file)
@@ -656,22 +678,6 @@ class Repository:
         self.__add()
         if self.__commit(message):
             self.__push(branch=branch)
-
-    def files(
-        self, relpath: str | Path, extension: str = "lua"
-    ) -> Generator["TextFile", Any, None]:
-        for path in glob.glob(
-            str(self.basepath / relpath) + "/**/*." + extension, recursive=True
-        ):
-            yield TextFile(path)
-
-
-def list_files(
-    path: str | Path, repo: Repository, extension: str = "lua"
-) -> Generator["TextFile", Any, None]:
-    path = Path(path)
-    for path in glob.glob(str(path) + "/**/*." + extension, recursive=True):
-        yield TextFile(path)
 
 
 commit_ids = {"f52b099": "f52b099f3e01d53dc03b315e1909245c3d5418d3"}
@@ -852,7 +858,7 @@ class Subproject:
         """Merge all lua files into one big file for the CTAN upload."""
         self.distribute()
         contents: list[str] = []
-        for text_file in self.repo.files("library"):
+        for text_file in self.repo.folder.list_text_files("library"):
             content: str = text_file.content
             # Remove the return statements
             content = re.sub(r"^return .+\n", "", content, flags=re.MULTILINE)

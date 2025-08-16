@@ -19,9 +19,12 @@ class TestIterator:
         set_subproject(None)
 
 
-def test_get() -> None:
-    assert subprojects.get("luatex").name == "LuaTeX"
-    assert subprojects.get("LuaTeX").name == "LuaTeX"
+class TestGet:
+    def test_by_lowercase(self) -> None:
+        assert subprojects.get("luatex").name == "LuaTeX"
+
+    def test_by_camelcase(self) -> None:
+        assert subprojects.get("LuaTeX").name == "LuaTeX"
 
 
 def test_names() -> None:
