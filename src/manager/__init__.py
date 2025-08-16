@@ -195,6 +195,13 @@ class TextFile:
         """Remove duplicate empty lines."""
         self.content = re.sub("\n\n+", "\n\n", self.content)
 
+    def remove_double_dash_comments(self) -> str:
+        content: list[str] = []
+        for line in self.content.splitlines():
+            if not re.match(r"^(--[^-].*|--)$", line):
+                content.append(line)
+        return "\n".join(content)
+
     def remove_navigation_table(self) -> None:
         self.content = self.content.replace(
             "---A helper table to better navigate through the documentation using the\n"

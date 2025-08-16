@@ -1,5 +1,5 @@
 test:
-	uv run --isolated --python=3.12 pytest
+	uv run --isolated --python=3.12 pytest -vv
 .PHONY: test
 
 install:

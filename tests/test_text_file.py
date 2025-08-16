@@ -1,3 +1,6 @@
+from pathlib import Path
+from typing import Callable
+
 from manager import Repository, TextFile
 
 
@@ -16,4 +19,13 @@ def test_render(text_file: TextFile, repo: Repository) -> None:
 ---
 ---😱 [Types](https://github.com/TeXLuaCATS/manager/blob/main/tests/files/template.lua) incomplete or incorrect? 🙏 [Please contribute!](https://github.com/TeXLuaCATS/manager/pulls)
 local function test () end"""
+    )
+
+
+def test_double_dash_comments(copy_to_tmp: Callable[[str | Path], Path]):
+    path = copy_to_tmp("double-dash-comments.lua")
+    file = TextFile(path)
+    assert (
+        file.remove_double_dash_comments()
+        == "\n_N = {}\n\n---\n---@meta\n\n---\n---This is the TeX lib.\ntex = {}"
     )
