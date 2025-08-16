@@ -889,109 +889,6 @@ class TeXSubproject(Subproject):
             return self._downstream_repo
 
 
-subprojects: dict[str, Subproject] = {
-    "lmathx": Subproject("lmathx"),
-    "lpeg": Subproject("lpeg"),
-    "luaharfbuzz": Subproject("luaharfbuzz"),
-    "luasocket": Subproject("luasocket"),
-    "luazip": Subproject("luazip"),
-    "lzlib": Subproject("lzlib"),
-    "md5": Subproject("md5"),
-    "slnunicode": Subproject("slnunicode"),
-    # TeX
-    "lualatex": TeXSubproject("LuaLaTeX"),
-    "lualibs": TeXSubproject(
-        "Lualibs",
-        manuals={
-            "cld-abitoflua.tex": "01_abitoflua.tex",
-            "cld-afewdetails.tex": "04_afewdetails.tex",
-            "cld-backendcode.tex": "15_backendcode.tex",
-            "cld-callbacks.tex": "14_callbacks.tex",
-            "cld-contents.tex": None,
-            "cld-ctxfunctions.tex": "11_ctxfunctions.tex",
-            "cld-environment.tex": None,
-            "cld-files.tex": "20_files.tex",
-            "cld-gettingstarted.tex": "02_gettingstarted.tex",
-            "cld-goodies.tex": "16_goodies.tex",
-            "cld-graphics.tex": "06_graphics.tex",
-            "cld-introduction.tex": None,
-            "cld-logging.tex": "09_logging.tex",
-            "cld-luafunctions.tex": "10_luafunctions.tex",
-            "cld-macros.tex": "07_macros.tex",
-            "cld-mkiv.tex": None,
-            "cld-moreonfunctions.tex": "03_moreonfunctions.tex",
-            "cld-nicetoknow.tex": "17_nicetoknow.tex",
-            "cld-scanners.tex": "12_scanners.tex",
-            "cld-somemoreexamples.tex": "05_somemoreexamples.tex",
-            "cld-specialcommands.tex": "19_specialcommands.tex",
-            "cld-summary.tex": "18_summary.tex",
-            "cld-titlepage.tex": None,
-            "cld-variables.tex": "13_variables.tex",
-            "cld-verbatim.tex": "08_verbatim.tex",
-        },
-        manuals_base_url="https://raw.githubusercontent.com/contextgarden/context/refs/heads/main/doc/context/sources/general/manuals/cld",
-    ),
-    "luametatex": TeXSubproject(
-        "LuaMetaTeX",
-        manuals={
-            "luametatex-assumptions.tex": "04_assumptions.tex",
-            "luametatex-callbacks.tex": "07_callbacks.tex",
-            "luametatex-constructions.tex": "03_constructions.tex",
-            "luametatex-contents.tex": None,
-            "luametatex-engines.tex": "01_engines.tex",
-            "luametatex-fonts.tex": "08_fonts.tex",
-            "luametatex-internals.tex": "05_internals.tex",
-            "luametatex-introduction.tex": None,
-            "luametatex-languages.tex": "09_languages.tex",
-            "luametatex-libraries.tex": "17_libraries.tex",
-            "luametatex-lua.tex": "10_lua.tex",
-            "luametatex-math.tex": "13_math.tex",
-            "luametatex-metapost.tex": "11_metapost.tex",
-            "luametatex-nodes.tex": "15_nodes.tex",
-            "luametatex-pdf.tex": "14_pdf.tex",
-            "luametatex-primitives.tex": "06_primitives.tex",
-            "luametatex-principles.tex": "02_principles.tex",
-            "luametatex-style.tex": None,
-            "luametatex-tex.tex": "12_tex.tex",
-            "luametatex-tokens.tex": "16_tokens.tex",
-            "luametatex-security.tex": "18_security.tex",
-            "luametatex.tex": None,
-        },
-        manuals_base_url="https://raw.githubusercontent.com/contextgarden/context/refs/heads/main/doc/context/sources/general/manuals/luametatex",
-    ),
-    "luaotfload": TeXSubproject("LuaOTFload"),
-    "luatex": TeXSubproject(
-        "LuaTeX",
-        manuals={
-            "luatex-backend.tex": "14_backend.tex",
-            "luatex-callbacks.tex": "09_callbacks.tex",
-            "luatex-contents.tex": None,
-            "luatex-enhancements.tex": "02_enhancements.tex",
-            "luatex-export-titlepage.tex": None,
-            "luatex-firstpage.tex": None,
-            "luatex-fontloader.tex": "12_fontloader.tex",
-            "luatex-fonts.tex": "06_fonts.tex",
-            "luatex-graphics.tex": "11_graphics.tex",
-            "luatex-harfbuzz.tex": "13_harfbuzz.tex",
-            "luatex-introduction.tex": None,
-            "luatex-languages.tex": "05_languages.tex",
-            "luatex-logos.tex": None,
-            "luatex-lua.tex": "04_lua.tex",
-            "luatex-math.tex": "07_math.tex",
-            "luatex-modifications.tex": "03_modifications.tex",
-            "luatex-nodes.tex": "08_nodes.tex",
-            "luatex-preamble.tex": "01_preamble.tex",
-            "luatex-registers.tex": None,
-            "luatex-statistics.tex": None,
-            "luatex-style.tex": None,
-            "luatex-tex.tex": "10_tex.tex",
-            "luatex-titlepage.tex": None,
-        },
-        manuals_base_url="https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/raw/master/manual",
-    ),
-}
-
-
 class SubprojectContainer:
     __projects: dict[str, Subproject] = {}
 
@@ -1029,15 +926,110 @@ class SubprojectContainer:
         return list(self.__projects.keys())
 
 
-projects = SubprojectContainer()
-projects.add(subprojects)
+subprojects = SubprojectContainer(
+    Subproject("lmathx"),
+    Subproject("lpeg"),
+    Subproject("luaharfbuzz"),
+    Subproject("luasocket"),
+    Subproject("luazip"),
+    Subproject("lzlib"),
+    Subproject("md5"),
+    Subproject("slnunicode"),
+    # TeX
+    TeXSubproject("LuaLaTeX"),
+    TeXSubproject(
+        "Lualibs",
+        manuals={
+            "cld-abitoflua.tex": "01_abitoflua.tex",
+            "cld-afewdetails.tex": "04_afewdetails.tex",
+            "cld-backendcode.tex": "15_backendcode.tex",
+            "cld-callbacks.tex": "14_callbacks.tex",
+            "cld-contents.tex": None,
+            "cld-ctxfunctions.tex": "11_ctxfunctions.tex",
+            "cld-environment.tex": None,
+            "cld-files.tex": "20_files.tex",
+            "cld-gettingstarted.tex": "02_gettingstarted.tex",
+            "cld-goodies.tex": "16_goodies.tex",
+            "cld-graphics.tex": "06_graphics.tex",
+            "cld-introduction.tex": None,
+            "cld-logging.tex": "09_logging.tex",
+            "cld-luafunctions.tex": "10_luafunctions.tex",
+            "cld-macros.tex": "07_macros.tex",
+            "cld-mkiv.tex": None,
+            "cld-moreonfunctions.tex": "03_moreonfunctions.tex",
+            "cld-nicetoknow.tex": "17_nicetoknow.tex",
+            "cld-scanners.tex": "12_scanners.tex",
+            "cld-somemoreexamples.tex": "05_somemoreexamples.tex",
+            "cld-specialcommands.tex": "19_specialcommands.tex",
+            "cld-summary.tex": "18_summary.tex",
+            "cld-titlepage.tex": None,
+            "cld-variables.tex": "13_variables.tex",
+            "cld-verbatim.tex": "08_verbatim.tex",
+        },
+        manuals_base_url="https://raw.githubusercontent.com/contextgarden/context/refs/heads/main/doc/context/sources/general/manuals/cld",
+    ),
+    TeXSubproject(
+        "LuaMetaTeX",
+        manuals={
+            "luametatex-assumptions.tex": "04_assumptions.tex",
+            "luametatex-callbacks.tex": "07_callbacks.tex",
+            "luametatex-constructions.tex": "03_constructions.tex",
+            "luametatex-contents.tex": None,
+            "luametatex-engines.tex": "01_engines.tex",
+            "luametatex-fonts.tex": "08_fonts.tex",
+            "luametatex-internals.tex": "05_internals.tex",
+            "luametatex-introduction.tex": None,
+            "luametatex-languages.tex": "09_languages.tex",
+            "luametatex-libraries.tex": "17_libraries.tex",
+            "luametatex-lua.tex": "10_lua.tex",
+            "luametatex-math.tex": "13_math.tex",
+            "luametatex-metapost.tex": "11_metapost.tex",
+            "luametatex-nodes.tex": "15_nodes.tex",
+            "luametatex-pdf.tex": "14_pdf.tex",
+            "luametatex-primitives.tex": "06_primitives.tex",
+            "luametatex-principles.tex": "02_principles.tex",
+            "luametatex-style.tex": None,
+            "luametatex-tex.tex": "12_tex.tex",
+            "luametatex-tokens.tex": "16_tokens.tex",
+            "luametatex-security.tex": "18_security.tex",
+            "luametatex.tex": None,
+        },
+        manuals_base_url="https://raw.githubusercontent.com/contextgarden/context/refs/heads/main/doc/context/sources/general/manuals/luametatex",
+    ),
+    TeXSubproject("LuaOTFload"),
+    TeXSubproject(
+        "LuaTeX",
+        manuals={
+            "luatex-backend.tex": "14_backend.tex",
+            "luatex-callbacks.tex": "09_callbacks.tex",
+            "luatex-contents.tex": None,
+            "luatex-enhancements.tex": "02_enhancements.tex",
+            "luatex-export-titlepage.tex": None,
+            "luatex-firstpage.tex": None,
+            "luatex-fontloader.tex": "12_fontloader.tex",
+            "luatex-fonts.tex": "06_fonts.tex",
+            "luatex-graphics.tex": "11_graphics.tex",
+            "luatex-harfbuzz.tex": "13_harfbuzz.tex",
+            "luatex-introduction.tex": None,
+            "luatex-languages.tex": "05_languages.tex",
+            "luatex-logos.tex": None,
+            "luatex-lua.tex": "04_lua.tex",
+            "luatex-math.tex": "07_math.tex",
+            "luatex-modifications.tex": "03_modifications.tex",
+            "luatex-nodes.tex": "08_nodes.tex",
+            "luatex-preamble.tex": "01_preamble.tex",
+            "luatex-registers.tex": None,
+            "luatex-statistics.tex": None,
+            "luatex-style.tex": None,
+            "luatex-tex.tex": "10_tex.tex",
+            "luatex-titlepage.tex": None,
+        },
+        manuals_base_url="https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/raw/master/manual",
+    ),
+)
 
 parent_repo = Repository(basepath)
 vscode_extension_repo = Repository(basepath / "vscode_extension")
-
-
-def get_subproject(name: str) -> Subproject:
-    return subprojects[name]
 
 
 @click.group()
@@ -1092,7 +1084,7 @@ def convert() -> None:
     "-p",
     "--subproject",
     help="Select the subproject.",
-    type=click.Choice(projects.names),
+    type=click.Choice(subprojects.names),
     default="luatex",
 )
 @click.option(
@@ -1288,28 +1280,28 @@ def example(
 @cli.command()
 def format() -> None:
     """Format the lua docstrings (Remove duplicate empty comment lines, start docstring with an empty line)"""
-    for _, subproject in subprojects.items():
+    for subproject in subprojects:
         subproject.format()
 
 
 @cli.command()
 def manuals() -> None:
     """Download the TeX or HTML sources of the manuals."""
-    for _, subproject in subprojects.items():
+    for subproject in subprojects:
         subproject.download_manuals()
 
 
 @cli.command()
 def merge() -> None:
     """Merge all lua files of a subproject into one big file for the CTAN upload."""
-    for project in projects:
+    for project in subprojects:
         project.merge()
 
 
 @cli.command()
 def dist() -> None:
     "Copy library to dist and remove the navigation table."
-    for _, subproject in subprojects.items():
+    for subproject in subprojects:
         subproject.distribute()
     # vscode extension
     vscode_extension_repo.checkout_clean("main")
@@ -1365,7 +1357,7 @@ def rewrap(path: str) -> None:
 @cli.command()
 def submodule() -> None:
     """Update all submodules"""
-    for _, subproject in subprojects.items():
+    for subproject in subprojects:
         subproject.sync_from_remote()
 
 
