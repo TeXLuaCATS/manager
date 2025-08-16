@@ -1,0 +1,37 @@
+% language=uk
+
+\environment luatex-style
+
+\startcomponent luatex-preamble
+
+\startchapter[reference=preamble,title={Preamble}]
+
+\topicindex{nodes}
+\topicindex{boxes}
+\topicindex{\LUA}
+
+This is a reference manual, not a tutorial. This means that we discuss changes
+relative to traditional \TEX\ and also present new functionality. As a consequence
+we will refer to concepts that we assume to be known or that might be explained
+later.
+
+The average user doesn't need to know much about what is in this manual. For
+instance fonts and languages are normally dealt with in the macro package that
+you use. Messing around with node lists is also often not really needed at the
+user level. If you do mess around, you'd better know what you're dealing with.
+Reading \quotation {The \TEX\ Book} by Donald Knuth is a good investment of time
+then also because it's good to know where it all started. A more summarizing
+overview is given by \quotation {\TEX\ by Topic} by Victor Eijkhout. You might
+want to peek in \quotation {The \ETEX\ manual} and documentation about \PDFTEX.
+
+But \unknown\ if you're here because of \LUA, then all you need to know is that
+you can call it from within a run. The macro package that you use probably will
+provide a few wrapper mechanisms but the basic \lpr {directlua} command that
+does the job is:
+
+\starttyping
+\directlua{tex.print("Hi there")}
+\stoptyping
+
+You can put code between curly braces but if it's a lot you can also put it in a
+file and load that file with the usual \LUA\ commands.

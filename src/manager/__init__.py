@@ -326,83 +326,71 @@ class TextFile:
         Returns:
             str: The processed content in Lua-compatible format.
         """
-        self.content = re.sub(
-            r"\\(type|typ|prm|lpr|nod|syntax|notabene|whs|cbk)[\s]*\{([^}]*)\}",
-            r"`\2`",
-            self.content,
+
+        tuple[tuple[str, str]]
+
+        replacements = (
+            (
+                r"\\(type|typ|prm|lpr|nod|syntax|notabene|whs|cbk)[\s]*\{([^}]*)\}",
+                r"`\2`",
+            ),
+            (
+                r"\\libidx\s*\{(.*?)\}\s*\{(.*?)\}",
+                r"`\1.\2`",
+            ),
+            (
+                r"\\(hyphenatedurl)[\s]*\{([^}]*)\}",
+                r"\2",
+            ),
+            (r"\\quot(e|ation)\s*\{([^}]*)\}", r"“\2”"),
+            (r"\$([^$]+)\$", r"`\1`"),
+            (r"\\TEX\\?", "*TeX*"),
+            (r"\\ETEX\\?", "*e-TeX*"),
+            (r"\\CONTEXT\\?", "*ConTeXt*"),
+            (r"\\LUATEX\\?", "*LuaTeX*"),
+            (r"\\LUA\\?", "*Lua*"),
+            (r"\\PDF\\?", "*PDF*"),
+            (r"\\OPENTYPE\\?", "*OpenType*"),
+            (r"\\TRUETYPE\\?", "*TrueType*"),
+            (r"\\MICROSOFT\\?", "*Microsoft*"),
+            (r"\\FONTFORGE\\?", "*FontForge*"),
+            (r"\\POSTSCRIPT\\?", "*PostScript*"),
+            (r"\\UTF-?8?\\?", "*UTF-8*"),
+            (r"\\UNICODE\\?", "*Unicode*"),
+            (r"\\(environment|startcomponent) .*\n", ""),
+            (r"\\(starttyping|startfunctioncall|stoptyping|stopfunctioncall)", "```"),
+            (r"\\startitemize(\[[^]]*\])?", ""),
+            (r"\\startitem\s*", "* "),
+            (r"\\stopitem(ize)?", ""),
+            ("~", " "),
+            (r"\|-\|", "-"),
+            (r"\|/\|", "/"),
+            (r"\\NC \\NR", ""),
+            (r"\\(NC|DB|BC|LL|TB|stoptabulate)", ""),
+            (r"\\starttabulate\[.*?\]", ""),
+            (r"etc\\.\\", "etc."),
+            (
+                r"\\start(sub)*(section|chapter)*\[.*title=\{(.*?)\}\]",
+                r"# \3",
+            ),
+            (r"\\(sub)*section\{(.*?)\}", r"# \2"),
+            (r"\\(libindex|topicindex)\s*\{[^}]+\}", ""),
+            (
+                r"---\\stop(sub)*section",
+                "----------------------------------------------------------------\n\n",
+            ),
+            (
+                r"--- `(.*)` +(float|string|boolean|number|table|.*node) +",
+                r"---@field \1 \2 # ",
+            ),
+            (r"\n--- {10,}", r" "),
         )
 
-        self.content = re.sub(
-            r"\\libidx\s*\{(.*?)\}\s*\{(.*?)\}",
-            r"`\1.\2`",
-            self.content,
-        )
-
-        self.content = re.sub(
-            r"\\(hyphenatedurl)[\s]*\{([^}]*)\}",
-            r"\2",
-            self.content,
-        )
-
-        self.content = re.sub(r"\\quote\s*\{([^}]*)\}", r"“\1”", self.content)
-        self.content = re.sub(r"\$([^$]+)\$", r"`\1`", self.content)
-
-        self.content = re.sub(r"\\TEX\\?", "*TeX*", self.content)
-        self.content = re.sub(r"\\CONTEXT\\?", "*ConTeXt*", self.content)
-        self.content = re.sub(r"\\LUATEX\\?", "*LuaTeX*", self.content)
-        self.content = re.sub(r"\\LUA\\?", "*Lua*", self.content)
-        self.content = re.sub(r"\\PDF\\?", "*PDF*", self.content)
-        self.content = re.sub(r"\\OPENTYPE\\?", "*OpenType*", self.content)
-        self.content = re.sub(r"\\TRUETYPE\\?", "*TrueType*", self.content)
-        self.content = re.sub(r"\\MICROSOFT\\?", "*Microsoft*", self.content)
-        self.content = re.sub(r"\\FONTFORGE\\?", "*FontForge*", self.content)
-        self.content = re.sub(r"\\POSTSCRIPT\\?", "*PostScript*", self.content)
-        self.content = re.sub(r"\\UTF-?8?\\?", "*UTF-8*", self.content)
-        self.content = re.sub(r"\\UNICODE\\?", "*Unicode*", self.content)
-
-        self.content = re.sub(
-            r"\\(starttyping|startfunctioncall|stoptyping|stopfunctioncall)",
-            "```",
-            self.content,
-        )
-
-        self.content = re.sub(r"\\startitemize(\[[^]]*\])?", "", self.content)
-        self.content = re.sub(r"\\startitem\s*", "* ", self.content)
-        self.content = re.sub(r"\\stopitem(ize)?", "", self.content)
-
-        self.content = self.content.replace("~", " ")
-        self.content = self.content.replace("|-|", "-")
-        self.content = self.content.replace("|/|", "/")
-        self.content = self.content.replace("\\NC \\NR", "")
-        self.content = re.sub(r"\\(NC|DB|BC|LL|TB|stoptabulate)", "", self.content)
-        self.content = re.sub(r"\\starttabulate\[.*?\]", "", self.content)
-        self.content = self.content.replace("etc.\\", "etc.")
+        for pattern, replacement in replacements:
+            self.content = re.sub(pattern, replacement, self.content)
 
         self.content = "---" + self.content.replace("\n", "\n---")
-
-        self.content = re.sub(
-            r"\\start(sub)*(section|chapter)*\[.*title=\{(.*?)\}\]",
-            r"# \3",
-            self.content,
-        )
-        self.content = re.sub(r"\\(sub)*section\{(.*?)\}", r"# \2", self.content)
-        self.content = re.sub(r"\\(libindex|topicindex)\s*\{[^}]+\}", "", self.content)
         self.content = re.sub(r"---\n(---\n)+", "---\n", self.content)
-
-        self.content = re.sub(
-            r"---\\stop(sub)*section",
-            "----------------------------------------------------------------\n\n",
-            self.content,
-        )
-
-        self.content = re.sub(
-            r"--- `(.*)` +(float|string|boolean|number|table|.*node) +",
-            r"---@field \1 \2 # ",
-            self.content,
-        )
-
-        self.content = re.sub(r"\n--- {10,}", r" ", self.content)
-
         return self.finalize(save)
 
     def create_navigation_table(self) -> None:
@@ -558,7 +546,7 @@ class Repository:
         relpath = str(file)
         relpath = relpath.replace(str(self.basepath), "")
         if relpath != str(file):
-            return relpath[1:] # remove leading /
+            return relpath[1:]  # remove leading /
         return relpath
 
     def get_github_blob_url(
