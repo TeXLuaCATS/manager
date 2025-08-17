@@ -32,7 +32,7 @@ def test_distribute(subproject: Subproject, meta_repo: Repository) -> None:
     # distribute
     subproject.distribute(sync_to_remote=False)
 
-    assert dist.count() == 35
+    assert dist.count() == 36
 
     assert "function callback.register" in dist.get("library/callback.lua").content
     assert library.count() == 34
