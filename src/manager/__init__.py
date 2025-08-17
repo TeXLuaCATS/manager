@@ -665,7 +665,9 @@ class Repository:
             None
         """
         logger.debug(
-            "Syncronize Git repository %s from remote %s", self.path, self.remote
+            "Syncronize Git repository %s from remote %s",
+            Color.green(self.path),
+            Color.green(self.remote),
         )
         self.__checkout(branch)
         self.__add()
@@ -786,8 +788,9 @@ class Subproject:
 
     def sync_from_remote(self) -> None:
         """
-        Synchronizes the main and the downstream repository with the remote repositories by
-        resetting the local repositories and pulling down from the remote.
+        Synchronizes the main and the downstream repository with the remote
+        repositories by resetting the local repositories and pulling down from
+        the remote.
 
         Args:
             branch: The name of the branch to synchronize from. Defaults to "main".
@@ -1124,10 +1127,7 @@ def example(
     You can specify the relative path of a Lua file or of a TeX file."""
 
     def _extract_tex_markup(lua_code: str) -> tuple[str, str]:
-        """
-
-
-        Extracts lines marked with '--tex: ' from Lua code and separates them from the rest.
+        """Extracts lines marked with '--tex: ' from Lua code and separates them from the rest.
 
         Args:
             lua_code: The Lua code as a string, potentially containing lines starting with '--tex: '.
@@ -1371,7 +1371,9 @@ def rewrap(path: str) -> None:
 
 @cli.command()
 def submodule() -> None:
-    """Update all submodules"""
+    """Update all submodules. Synchronizes the main and the downstream
+    repository with the remote repositories by resetting the local
+    repositories and pulling down from the remote."""
     for subproject in subprojects:
         subproject.sync_from_remote()
 
