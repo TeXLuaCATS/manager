@@ -654,6 +654,19 @@ class Repository:
         shutil.copytree(self.path / subdir, dest, dirs_exist_ok=True)
 
     def sync_from_remote(self, branch: str = "main") -> None:
+        """
+        Synchronizes the local repository with the remote repository by
+        resetting the local repository and pulling down from the remote.
+
+        Args:
+            branch: The name of the branch to synchronize from. Defaults to "main".
+
+        Returns:
+            None
+        """
+        logger.debug(
+            "Syncronize Git repository %s from remote %s", self.path, self.remote
+        )
         self.__checkout(branch)
         self.__add()
         self.__reset()
@@ -772,6 +785,16 @@ class Subproject:
                         _download(src_filename, dest_filename)
 
     def sync_from_remote(self) -> None:
+        """
+        Synchronizes the main and the downstream repository with the remote repositories by
+        resetting the local repositories and pulling down from the remote.
+
+        Args:
+            branch: The name of the branch to synchronize from. Defaults to "main".
+
+        Returns:
+            None
+        """
         self.repo.sync_from_remote()
         downstream = self.downstream_repo
         if downstream is not None:
