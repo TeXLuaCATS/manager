@@ -4,7 +4,15 @@ from typing import Callable, Union
 
 import pytest
 
-from manager import Subproject, Repository, TextFile, basepath, set_basepath, subprojects
+from manager import (
+    Folder,
+    Subproject,
+    Repository,
+    TextFile,
+    basepath,
+    set_basepath,
+    subprojects,
+)
 
 
 @pytest.fixture
@@ -88,3 +96,8 @@ def TmpTextFile(copy_to_tmp: Callable[[str | Path], Path]) -> Callable[[str], Te
 @pytest.fixture
 def subproject() -> Subproject:
     return subprojects.get("luatex")
+
+
+@pytest.fixture
+def folder(tmp_path: Path) -> Folder:
+    return Folder(tmp_path)

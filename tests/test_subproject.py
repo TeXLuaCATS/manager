@@ -11,7 +11,14 @@ def test_merge(subproject: Subproject, meta_repo: Repository) -> None:
 
 
 def test_download_manuals(subproject: Subproject, meta_repo: Repository) -> None:
-    subproject.manuals_folder.clear()
-    assert len(list(subproject.manuals_folder.list_files(extension="tex"))) == 0
+    folder = subproject.manuals_folder
+    folder.clear()
+    assert folder.count() == 0
     subproject.download_manuals()
-    assert len(list(subproject.manuals_folder.list_files(extension="tex"))) > 0
+    assert folder.count() > 0
+
+
+def test_distribute(subproject: Subproject, meta_repo: Repository) -> None:
+    if subproject.downstream_repo:
+        subproject.downstream_repo.folder.clear()
+    subproject.distribute(sync_to_remote=False)

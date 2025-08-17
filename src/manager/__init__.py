@@ -482,15 +482,32 @@ class Folder:
     def copy(self, dest: Union[str, Path], delete_dest: bool = True) -> None:
         _copy_directory(self.path, dest, delete_dest)
 
-    def clear(self) -> None:
+    def clear(self, subfolder: Optional[Union[str, Path]] = None) -> None:
         """
-        Deletes all files and subfolders in the folder.
+        Deletes all files and subfolders in the folder or in the specified subfolder.
         """
-        for file in self.path.glob("*"):
+        pattern: str
+        if subfolder:
+            pattern = f"{subfolder}/*"
+        else:
+            pattern = "*"
+        for file in self.path.glob(pattern):
             if file.is_file():
                 file.unlink()
             elif file.is_dir():
                 shutil.rmtree(file)
+
+    def count(self) -> int:
+        """
+        Counts the number of files and subfolders in the folder recursively.
+
+        Returns:
+            The total number of files and subfolders (including all subdirectories)
+        """
+        count = 0
+        for _ in self.path.rglob("*"):
+            count += 1
+        return count
 
 
 class Repository:
@@ -812,19 +829,22 @@ class Subproject:
                 file.clean_docstrings(save=True)
             _run_stylua(self.downstream_library.path)
 
-    def distribute(self) -> None:
+    def distribute(self, sync_to_remote: bool = True) -> None:
         dist = Folder(self.dist / "library")
         self.library.copy(dist.path)
         for file in dist.list_files():
             file.remove_navigation_table(save=True)
             file.clean_docstrings(save=True)
-        if not self.repo.is_commited:
-            raise Exception("Uncommited changes found! Commit first, then retry!")
         if self.downstream_repo:
             dist.copy(self.downstream_repo.path / "library")
-            self.downstream_repo.sync_to_remote(
-                "Sync with " + self.repo.latest_commit_url
-            )
+            if sync_to_remote:
+                if not self.repo.is_commited:
+                    raise Exception(
+                        "Uncommited changes found! Commit first, then retry!"
+                    )
+                self.downstream_repo.sync_to_remote(
+                    "Sync with " + self.repo.latest_commit_url
+                )
 
     def generate_markdown_docs(self, commit_id: str) -> None:
         self.distribute()
@@ -949,6 +969,12 @@ class SubprojectContainer:
     @property
     def names(self) -> list[str]:
         return list(self.__projects.keys())
+
+    @property
+    def tex_projects(self) -> Generator[TeXSubproject, Any, None]:
+        for subproject in self:
+            if isinstance(subproject, TeXSubproject):
+                yield subproject
 
 
 subprojects = SubprojectContainer(
@@ -1315,17 +1341,17 @@ def merge() -> None:
 
 @cli.command()
 def dist() -> None:
-    "Copy library to dist and remove the navigation table."
+    """Copy the library to ``dist`` folder, remove the navigation table, clean
+    the docstrings and synchronize to the remote repository"""
     for subproject in subprojects:
         subproject.distribute()
     # vscode extension
     vscode_extension_repo.checkout_clean("main")
     latest_commit_urls: list[str] = []
-    for lowercase_name in ["lualatex", "lualibs", "luametatex", "luaotfload", "luatex"]:
-        subproject = subprojects[lowercase_name]
+    for subproject in subprojects.tex_projects:
         _copy_directory(
             subproject.dist / "library",
-            vscode_extension_repo.path / "library" / lowercase_name,
+            vscode_extension_repo.path / "library" / subproject.lowercase_name,
         )
         latest_commit_urls.append(subproject.repo.latest_commit_url)
     vscode_extension_repo.sync_to_remote(
