@@ -1373,11 +1373,12 @@ def merge() -> None:
 
 
 @cli.command()
-def dist() -> None:
+@click.option("--no-sync", is_flag=True, help="Do not commit and sync to the remote.")
+def dist(no_sync: bool) -> None:
     """Copy the library to ``dist`` folder, remove the navigation table, clean
     the docstrings and synchronize to the remote repository"""
     for subproject in subprojects:
-        subproject.distribute()
+        subproject.distribute(not no_sync)
     # vscode extension
     vscode_extension_repo.checkout_clean("main")
     latest_commit_urls: list[str] = []
@@ -1387,10 +1388,11 @@ def dist() -> None:
             vscode_extension_repo.path / "library" / subproject.lowercase_name,
         )
         latest_commit_urls.append(subproject.repo.latest_commit_url)
-    vscode_extension_repo.sync_to_remote(
-        "Sync with:\n\n" + "- " + "\n- ".join(latest_commit_urls)
-    )
-    parent_repo.sync_to_remote("Update submodules")
+    if not no_sync:
+        vscode_extension_repo.sync_to_remote(
+            "Sync with:\n\n" + "- " + "\n- ".join(latest_commit_urls)
+        )
+        parent_repo.sync_to_remote("Update submodules")
 
 
 @cli.command()
