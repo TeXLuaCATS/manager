@@ -44,8 +44,8 @@ def set_subproject(subproject: Optional[str]) -> None:
     current_subproject = subproject
 
 
-copyright_notice = """-- -----------------------------------------------------------------------------
--- Copyright (C) 2022-2025 by Josef Friedrich <josef@friedrich.rocks>
+copyright_notice = f"""-- -----------------------------------------------------------------------------
+-- Copyright (C) 2022-{datetime.now().year} by Josef Friedrich <josef@friedrich.rocks>
 -- -----------------------------------------------------------------------------
 --
 -- This program is free software: you can redistribute it and/or modify it
@@ -489,7 +489,9 @@ class Folder:
             search_path = self.path
         else:
             search_path = self.path / relpath
-        for path in glob.glob(f"{search_path}/**/*.{extension}", recursive=True):
+        for path in sorted(
+            glob.glob(f"{search_path}/**/*.{extension}", recursive=True)
+        ):
             yield TextFile(path)
 
     def get(self, relpath: Union[str, Path]) -> TextFile:
@@ -778,6 +780,15 @@ class Subproject:
             path.mkdir(parents=True)
         return path
 
+    _dist_library: Optional[Folder] = None
+
+    @property
+    def dist_library(self) -> Folder:
+        """The ``library`` folder in the ``dist`` directory, for example: ``dist/LuaTeX/library``."""
+        if self._dist_library is None:
+            self._dist_library = Folder(self.dist / "library")
+        return self._dist_library
+
     @property
     def merge_defintions(self) -> TextFile:
         """The text file where the merged definitions are stored."""
@@ -862,6 +873,28 @@ class Subproject:
                 file.clean_docstrings(save=True)
             _run_stylua(self.downstream_library.path)
 
+    def merge(
+        self,
+    ) -> None:
+        """Merge all lua files into one big file for the CTAN upload."""
+        # self.distribute()
+        contents: list[str] = []
+        for text_file in self.dist_library.list():
+            content = text_file.remove_double_dash_comments()
+            # Remove the return statements
+            content = re.sub(r"^return .+\n", "", content, flags=re.MULTILINE)
+            # Remove all ---@meta definitions. We add one ---@meta later
+            content = content.replace("---@meta\n", "")
+            contents.append(content)
+        # Add copyright notice and meta definition at the beginning
+        contents.insert(0, copyright_notice)
+        contents.insert(1, "---@meta\n")
+        content = "\n".join(contents)
+        # Artefact of the copyright removal
+        content = content.replace("\n\n---\n\n", "")
+        self.merge_defintions.write(content)
+        self.merge_defintions.clean_docstrings(save=True)
+
     def distribute(self, sync_to_remote: bool = True) -> None:
         dist = Folder(self.dist / "library")
         self.library.copy(dist.path)
@@ -878,6 +911,7 @@ class Subproject:
                 self.downstream_repo.sync_to_remote(
                     "Sync with " + self.repo.latest_commit_url
                 )
+        self.merge()
 
     def generate_markdown_docs(self, commit_id: str) -> None:
         self.distribute()
@@ -923,32 +957,6 @@ class Subproject:
         self.repo.checkout_clean("gh-pages")
         _copy_directory(dest, self.repo.path)
         self.repo.sync_to_remote("Generate docs", "gh-pages")
-
-    def merge(
-        self,
-    ) -> None:
-        """Merge all lua files into one big file for the CTAN upload."""
-        # self.distribute()
-        contents: list[str] = []
-        for text_file in self.repo.folder.list("library"):
-            content: str = text_file.content
-            # Remove the return statements
-            content = re.sub(r"^return .+\n", "", content, flags=re.MULTILINE)
-            # Remove all ---@meta definitions. We add one ---@meta later
-            content = content.replace("---@meta\n", "")
-            contents.append(content)
-        # Add copyright notice and meta definition at the beginning
-        contents.insert(
-            0,
-            f"---Copyright (C) 2022-{datetime.now().year} by Josef Friedrich <josef@friedrich.rocks>",
-        )
-        contents.insert(1, copyright_notice)
-        contents.insert(2, "---@meta\n")
-        content = "\n".join(contents)
-        # Artefact of the copyright removal
-        content = content.replace("\n\n---\n\n", "")
-        self.merge_defintions.write(content)
-        self.merge_defintions.clean_docstrings(save=True)
 
 
 @dataclass
@@ -1345,7 +1353,7 @@ def example(
         raise Exception(f"The specified path doesn’t exist: {src}")
 
     if src.is_dir():
-        for path in glob.glob(f"{src}/**/*.lua", recursive=True):
+        for path in sorted(glob.glob(f"{src}/**/*.lua", recursive=True)):
             _run_example(Path(path), luaonly=luaonly, print_docstring=print_docstring)
     else:
         _run_example(src, luaonly=luaonly, print_docstring=print_docstring)
@@ -1375,10 +1383,11 @@ def merge() -> None:
 @cli.command()
 @click.option("--no-sync", is_flag=True, help="Do not commit and sync to the remote.")
 def dist(no_sync: bool) -> None:
+    sync_to_remote = not no_sync
     """Copy the library to ``dist`` folder, remove the navigation table, clean
     the docstrings and synchronize to the remote repository"""
     for subproject in subprojects:
-        subproject.distribute(not no_sync)
+        subproject.distribute(sync_to_remote)
     # vscode extension
     vscode_extension_repo.checkout_clean("main")
     latest_commit_urls: list[str] = []
@@ -1388,7 +1397,7 @@ def dist(no_sync: bool) -> None:
             vscode_extension_repo.path / "library" / subproject.lowercase_name,
         )
         latest_commit_urls.append(subproject.repo.latest_commit_url)
-    if not no_sync:
+    if sync_to_remote:
         vscode_extension_repo.sync_to_remote(
             "Sync with:\n\n" + "- " + "\n- ".join(latest_commit_urls)
         )
