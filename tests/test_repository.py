@@ -44,7 +44,7 @@ def test_get_remote(repo: Repository) -> None:
 
 def test_folder(repo: Repository) -> None:
     count = 0
-    for _ in repo.folder.list_files("tests/files"):
+    for _ in repo.folder.list("tests/files"):
         count += 1
     assert count == 2
 

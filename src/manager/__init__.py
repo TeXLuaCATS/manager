@@ -189,6 +189,7 @@ class TextFile:
     def write(self, text: str) -> None:
         logger.info("Write to %s", Color.green(self.path))
         self.path.write_text(text)
+        self.content = text
 
     def _remove_duplicate_empty_lines(self) -> None:
         """Remove duplicate empty lines."""
@@ -468,9 +469,21 @@ class Folder:
     def __init__(self, path: Union[str, Path]) -> None:
         self.path = Path(path)
 
-    def list_files(
+    def list(
         self, relpath: Optional[Union[str, Path]] = None, extension: str = "lua"
     ) -> Generator["TextFile", Any, None]:
+        """
+        List files recursively as text files with a specified extension.
+
+        Args:
+            relpath: A relative path to search within.
+            If None, the search will start from the base path (``self.path``).
+            extension (str): The file extension to filter by. Defaults to ``lua``.
+
+        Yields:
+            TextFile: A generator yielding ``TextFile`` objects for each file
+            matching the specified extension in the search path.
+        """
         search_path: Path
         if relpath is None:
             search_path = self.path
@@ -479,33 +492,53 @@ class Folder:
         for path in glob.glob(f"{search_path}/**/*.{extension}", recursive=True):
             yield TextFile(path)
 
+    def get(self, relpath: Union[str, Path]) -> TextFile:
+        """
+        Retrieve a TextFile object for the given relative path.
+
+        Args:
+            relpath: The relative path to the file.
+
+        Returns:
+            TextFile: An instance of TextFile representing the file at the specified path.
+        """
+        return TextFile(self.path / relpath)
+
     def copy(self, dest: Union[str, Path], delete_dest: bool = True) -> None:
         _copy_directory(self.path, dest, delete_dest)
+
+    @staticmethod
+    def __get_pattern(subfolder: Optional[Union[str, Path]] = None) -> str:
+        if subfolder:
+            return f"{subfolder}/*"
+        else:
+            return "*"
 
     def clear(self, subfolder: Optional[Union[str, Path]] = None) -> None:
         """
         Deletes all files and subfolders in the folder or in the specified subfolder.
+
+        Args:
+            subfolder: Delete files in the subfolder if specified.
         """
-        pattern: str
-        if subfolder:
-            pattern = f"{subfolder}/*"
-        else:
-            pattern = "*"
-        for file in self.path.glob(pattern):
+        for file in self.path.glob(Folder.__get_pattern(subfolder)):
             if file.is_file():
                 file.unlink()
             elif file.is_dir():
                 shutil.rmtree(file)
 
-    def count(self) -> int:
+    def count(self, subfolder: Optional[Union[str, Path]] = None) -> int:
         """
         Counts the number of files and subfolders in the folder recursively.
+
+        Args:
+            subfolder: Count files in the subfolder if specified.
 
         Returns:
             The total number of files and subfolders (including all subdirectories)
         """
         count = 0
-        for _ in self.path.rglob("*"):
+        for _ in self.path.rglob(Folder.__get_pattern(subfolder)):
             count += 1
         return count
 
@@ -822,17 +855,17 @@ class Subproject:
 
     def format(self) -> None:
         _run_stylua(self.library.path)
-        for file in self.library.list_files():
+        for file in self.library.list():
             file.clean_docstrings(save=True)
         if self.downstream_library:
-            for file in self.downstream_library.list_files():
+            for file in self.downstream_library.list():
                 file.clean_docstrings(save=True)
             _run_stylua(self.downstream_library.path)
 
     def distribute(self, sync_to_remote: bool = True) -> None:
         dist = Folder(self.dist / "library")
         self.library.copy(dist.path)
-        for file in dist.list_files():
+        for file in dist.list():
             file.remove_navigation_table(save=True)
             file.clean_docstrings(save=True)
         if self.downstream_repo:
@@ -897,7 +930,7 @@ class Subproject:
         """Merge all lua files into one big file for the CTAN upload."""
         # self.distribute()
         contents: list[str] = []
-        for text_file in self.repo.folder.list_files("library"):
+        for text_file in self.repo.folder.list("library"):
             content: str = text_file.content
             # Remove the return statements
             content = re.sub(r"^return .+\n", "", content, flags=re.MULTILINE)
