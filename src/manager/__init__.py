@@ -423,7 +423,7 @@ class TextFile:
         )
         self.save()
 
-    def render(self, repo: "Repository") -> str:
+    def render_templates(self, repo: "Repository", save: bool = False) -> str:
         env = Environment(loader=FileSystemLoader(self.path.parent))
 
         def luatex_c(
@@ -450,7 +450,8 @@ class TextFile:
         }
 
         template = env.get_template(self.path.name)
-        return template.render()
+        self.content = template.render()
+        return self.finalize(save)
 
     def save(self) -> None:
         if logger.isEnabledFor(logging.DEBUG):
@@ -901,6 +902,7 @@ class Subproject:
         for file in dist.list():
             file.remove_navigation_table(save=True)
             file.clean_docstrings(save=True)
+            file.render_templates(self.repo, save=True)
         if self.downstream_repo:
             dist.copy(self.downstream_repo.path / "library")
             if sync_to_remote:

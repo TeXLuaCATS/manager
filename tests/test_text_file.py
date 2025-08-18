@@ -20,7 +20,7 @@ def test_content(template: TextFile) -> None:
 
 def test_render(template: TextFile, repo: Repository) -> None:
     assert (
-        template.render(repo)
+        template.render_templates(repo)
         == """\
 ---
 ---__Reference__:
