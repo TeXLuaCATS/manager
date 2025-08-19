@@ -5,11 +5,6 @@ import pytest
 from manager import Repository, TextFile
 
 
-@pytest.fixture
-def template(TmpTextFile: Callable[[str], TextFile]) -> TextFile:
-    return TmpTextFile("template.lua")
-
-
 def test_filename(template: TextFile) -> None:
     assert template.filename == "template.lua"
 
@@ -18,7 +13,28 @@ def test_content(template: TextFile) -> None:
     assert "local function test () end" in template.content
 
 
-def test_render(template: TextFile, repo: Repository) -> None:
+@pytest.fixture
+def links(TmpTextFile: Callable[[str], TextFile]) -> TextFile:
+    return TmpTextFile("reference-links.lua")
+
+
+def test_convert_links_to_templates(links: TextFile) -> None:
+    assert (
+        links.convert_links_to_templates()
+        == """---* {{ luatex_c('f52b099:source/texk/web2c/luatexdir/lua/lfontlib.c:327:352') }}
+---* {{ luatex_c('f52b099:source/texk/web2c/luatexdir/lua/lpdflib.c:25:87') }}
+---* {{ luatex_c('f52b099:source/texk/web2c/luatexdir/lua/limglib.c:75:102') }}
+---* Corresponding DTX source code: [ltluatex.dtx#L1290-L1302](https://github.com/latex3/latex2e/blob/ae4e1f74f2be2f8a13c0616287a8ff9009b72ca8/base/ltluatex.dtx#L1290-L1302)
+"""
+    )
+
+
+@pytest.fixture
+def template(TmpTextFile: Callable[[str], TextFile]) -> TextFile:
+    return TmpTextFile("template.lua")
+
+
+def test_render_templates(template: TextFile, repo: Repository) -> None:
     assert (
         template.render_templates(repo)
         == """\

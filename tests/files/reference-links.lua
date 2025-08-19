@@ -1,0 +1,4 @@
+---* Corresponding C source code: [lfontlib.c#L327-L352](https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/f52b099f3e01d53dc03b315e1909245c3d5418d3/source/texk/web2c/luatexdir/lua/lfontlib.c#L327-L352)
+---* Corresponding C source code: [lpdflib.c#L25-87](https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/f52b099f3e01d53dc03b315e1909245c3d5418d3/source/texk/web2c/luatexdir/lua/lpdflib.c#L25-L87)
+---* Corresponding C source code: [limglib.c#L102](https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/f52b099f3e01d53dc03b315e1909245c3d5418d3/source/texk/web2c/luatexdir/lua/limglib.c#L75-L102)
+---* Corresponding DTX source code: [ltluatex.dtx#L1290-L1302](https://github.com/latex3/latex2e/blob/ae4e1f74f2be2f8a13c0616287a8ff9009b72ca8/base/ltluatex.dtx#L1290-L1302)

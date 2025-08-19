@@ -423,6 +423,44 @@ class TextFile:
         )
         self.save()
 
+    def convert_links_to_templates(self, save: bool = False) -> str:
+        def __replace(match: re.Match[str]) -> str:
+            caption = match.group("caption")
+            url = match.group("url")
+            hash = match.group("hash")[:7]
+            relpath = match.group("relpath")
+            lines = match.group("lines").replace("L", "").split("-")
+            start_line: int
+            end_line: Optional[int] = None
+
+            argument: str
+            start_line = int(lines[0])
+            if len(lines) == 2:
+                end_line = int(lines[1])
+                argument = f"{hash}:{relpath}:{start_line}:{end_line}"
+            else:
+                argument = f"{hash}:{relpath}:{start_line}"
+
+            function_name: Optional[str] = None
+            if (
+                caption == "Corresponding C source code"
+                and url == "https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob"
+            ):
+                function_name = "luatex_c"
+
+            if not function_name:
+                return match.group(0)
+
+            return "* {{ " + function_name + "('" + argument + "') }}"
+
+        self.content = re.sub(
+            r"\* (?P<caption>.+): \[.+\]\((?P<url>.+)/(?P<hash>[a-fA-F0-9]{40,})/(?P<relpath>.*)#(?P<lines>[L0-9-]+)\)",
+            __replace,
+            self.content,
+        )
+
+        return self.finalize(save)
+
     def render_templates(self, repo: "Repository", save: bool = False) -> str:
         env = Environment(loader=FileSystemLoader(self.path.parent))
 
