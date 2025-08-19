@@ -454,6 +454,7 @@ class TextFile:
         return self.finalize(save)
 
     def save(self) -> None:
+        self.content = self.content.strip() + "\n"
         if logger.isEnabledFor(logging.DEBUG):
             _diff(self.orig_content, self.content)
         self.path.write_text(self.content)
