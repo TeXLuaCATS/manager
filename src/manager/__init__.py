@@ -531,7 +531,10 @@ class TextFile:
                     for to_rewrap_line in to_rewrap:
                         lines_no_comment.append(to_rewrap_line[3:])
                     for rewrapped_line in textwrap.wrap(
-                        " ".join(lines_no_comment), width=77
+                        " ".join(lines_no_comment),
+                        width=77,
+                        break_long_words=False,
+                        break_on_hyphens=False,
                     ):
                         lines.append(f"---{rewrapped_line}")
                     to_rewrap = []
