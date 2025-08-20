@@ -521,7 +521,7 @@ class TextFile:
                     or line.startswith("---@")
                     or line.startswith("---|")
                     or line.startswith("---😱 [Types]")
-                    or not is_fenced_code_block
+                    or is_fenced_code_block
                 ):
                     lines_no_comment: list[str] = []
                     for to_rewrap_line in to_rewrap:

@@ -1,3 +1,5 @@
+from pathlib import Path
+from tempfile import mkdtemp
 from typing import Callable
 
 import pytest
@@ -207,7 +209,64 @@ class TestConvertTexToLua:
         )
 
 
-def test_rewrap(TmpTextFile: Callable[[str], TextFile]) -> None:
-    file = TmpTextFile("socket.lua")
+def rewrap(content: str) -> str:
+    file = TextFile(Path(mkdtemp()) / "tmp.lua")
+    file.write(content)
+    return file.rewrap()
 
-    assert file.rewrap() == ""
+
+class TestRewrap:
+    def test_one_emty_comment_line(self) -> None:
+        assert rewrap("---") == "---"
+
+    def test_with_code_block(self) -> None:
+        assert (
+            rewrap(""""
+---
+---Creates and returns an unconnected IPv6 UDP object. Unconnected objects support the sendto.
+---
+---In case of success, a new unconnected UDP object returned. In case of error, nil is returned, followed by an error message.
+---
+---Note: The UDP object returned will have the option "ipv6-v6only" set to true.
+---
+---__Reference__:
+---
+---```lua
+---local server, err = socket.udp6()
+---local client, err = socket.udp6()
+------@cast server UDPSocketUnconnected
+---server:setsockname("127.0.0.1", 12345)
+------@cast client UDPSocketConnected
+---client:setpeername("127.0.0.1", 12345)
+---```
+---
+---@return (UDPSocketConnected | UDPSocketUnconnected)?, SocketReturnError
+---
+---😱 [Types](https://github.com/LuaCATS/luasocket/blob/main/library/socket.lua) incomplete or incorrect? 🙏 [Please contribute!](https://github.com/LuaCATS/luasocket/pulls)
+function socket.udp6() end""")
+            == """"
+---
+---Creates and returns an unconnected IPv6 UDP object. Unconnected objects
+---support the sendto.
+---
+---In case of success, a new unconnected UDP object returned. In case of error,
+---nil is returned, followed by an error message.
+---
+---Note: The UDP object returned will have the option "ipv6-v6only" set to true.
+---
+---__Reference__:
+---
+---```lua
+---local server, err = socket.udp6()
+---local client, err = socket.udp6()
+------@cast server UDPSocketUnconnected
+---server:setsockname("127.0.0.1", 12345)
+------@cast client UDPSocketConnected
+---client:setpeername("127.0.0.1", 12345)
+---```
+---
+---@return (UDPSocketConnected | UDPSocketUnconnected)?, SocketReturnError
+---
+---😱 [Types](https://github.com/LuaCATS/luasocket/blob/main/library/socket.lua) incomplete or incorrect? 🙏 [Please contribute!](https://github.com/LuaCATS/luasocket/pulls)
+function socket.udp6() end"""
+        )
