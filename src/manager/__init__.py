@@ -541,6 +541,7 @@ class TextFile:
             else:
                 for left_over_line in to_rewrap:
                     lines.append(left_over_line)
+                to_rewrap = []
                 lines.append(line)
 
         self.content = "\n".join(lines)
