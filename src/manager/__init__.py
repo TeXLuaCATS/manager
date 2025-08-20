@@ -119,13 +119,25 @@ def _run_stylua(path: Path | str) -> None:
     )
 
 
-def _run_pygmentize(path: Path | str) -> None:
-    subprocess.check_call(
-        [
-            "pygmentize",
-            path,
-        ]
-    )
+def _run_pygmentize(
+    path: Optional[Union[Path, str]] = None, stdin: Optional[str] = None
+) -> None:
+    if not path and not stdin or path and stdin:
+        raise Exception("Specify path OR content")
+
+    if path:
+        subprocess.check_call(
+            [
+                "pygmentize",
+                path,
+            ]
+        )
+
+    elif stdin:
+        process = subprocess.Popen(
+            ["pygmentize", "-l", "lua"], stdin=subprocess.PIPE, text=True
+        )
+        process.communicate(input=stdin)
 
 
 def _diff(a: str, b: str) -> None:
@@ -489,6 +501,45 @@ class TextFile:
 
         template = env.get_template(self.path.name)
         self.content = template.render()
+        return self.finalize(save)
+
+    def rewrap(self, save: bool = False) -> str:
+        """The Rewrap extension (https://github.com/dnut/Rewrap) does not support rewraping of thee hyphens prefixed comment lines."""
+        lines: list[str] = []
+        is_fenced_code_block = False
+
+        to_rewrap: list[str] = []
+        for line in self.content.splitlines():
+            if line.startswith("---"):
+                if line.startswith("---```") and not is_fenced_code_block:
+                    is_fenced_code_block = True
+                if line.startswith("---```") and is_fenced_code_block:
+                    is_fenced_code_block = False
+
+                if (
+                    line == "---"
+                    or line.startswith("---@")
+                    or line.startswith("---|")
+                    or line.startswith("---😱 [Types]")
+                    or not is_fenced_code_block
+                ):
+                    lines_no_comment: list[str] = []
+                    for to_rewrap_line in to_rewrap:
+                        lines_no_comment.append(to_rewrap_line[3:])
+                    for rewrapped_line in textwrap.wrap(
+                        " ".join(lines_no_comment), width=77
+                    ):
+                        lines.append(f"---{rewrapped_line}")
+                    to_rewrap = []
+                    lines.append(line)
+                else:
+                    to_rewrap.append(line)
+
+            else:
+                lines.append(line)
+
+        self.content = "\n".join(lines)
+        _run_pygmentize(stdin=self.content)
         return self.finalize(save)
 
     def save(self) -> None:
@@ -1450,34 +1501,8 @@ def dist(no_sync: bool) -> None:
 def rewrap(path: str) -> None:
     """The Rewrap extension (https://github.com/dnut/Rewrap) does not support rewraping of thee hyphens prefixed comment lines."""
     abspath = Path(path).resolve()
-    lines: list[str] = []
-    for line in abspath.read_text().splitlines():
-        if line.startswith("---"):
-            line = line[3:]
-        else:
-            line = ""
-        lines.append(line)
-
-    # Rewrap paragraphs: group lines into paragraphs, then wrap each paragraph
-    paragraphs: list[str] = []
-    current_paragraph: list[str] = []
-    for line in lines:
-        if line.strip() == "":
-            if current_paragraph:
-                paragraphs.append(" ".join(current_paragraph))
-                current_paragraph = []
-        else:
-            current_paragraph.append(line.strip())
-    if current_paragraph:
-        paragraphs.append(" ".join(current_paragraph))
-
-    rewrapped = "\n\n".join(
-        "\n".join(textwrap.wrap(paragraph, width=77)) for paragraph in paragraphs
-    )
-    lines = []
-    for line in rewrapped.splitlines():
-        lines.append("---" + line)
-    print("\n".join(lines))
+    file = TextFile(abspath)
+    file.rewrap()
 
 
 @cli.command()

@@ -205,3 +205,9 @@ class TestConvertTexToLua:
 ---`TEXMF_OUTPUT_DIRECTORY` is the value of the output directory.
 ---"""
         )
+
+
+def test_rewrap(TmpTextFile: Callable[[str], TextFile]) -> None:
+    file = TmpTextFile("socket.lua")
+
+    assert file.rewrap() == ""
