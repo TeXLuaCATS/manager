@@ -46,7 +46,7 @@ def test_folder(repo: Repository) -> None:
     count = 0
     for _ in repo.folder.list("tests/files"):
         count += 1
-    assert count == 2
+    assert count == 3
 
 
 def test_copy_subdir(real_repo: Repository, tmp_path: Path) -> None:

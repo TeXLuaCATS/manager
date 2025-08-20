@@ -323,8 +323,6 @@ function node.direct.write(d) end"""
 ---
 ---* The next field returns the userdata object for the next node in a linked list of nodes, or nil,
 ---  if there is no next node.
----* The id indicates TEX’s ‘node type’. The field id has a numeric value for efficiency reasons,
----  but some of the library functions also accept a string value instead of id.
 ---* The subtype is another number. It often gives further information about a node of a particular
 ---  id, but it is most important when dealing with ‘whatsits’, because they are differentiated
 ---  solely based on their subtype.
@@ -344,11 +342,9 @@ function node.direct.write(d) end"""
 ---
 ---* The next field returns the userdata object for the next node in a linked list of nodes, or nil,
 ---  if there is no next node.
----* The id indicates TEX’s ‘node type’. The field id has a numeric value for efficiency reasons,
----  but some of the library functions also accept a string value instead of id.
 ---* The subtype is another number. It often gives further information about a node of a particular
----  id, but it is most important when dealing with ‘whatsits’, because they are
----differentiated   solely based on their subtype.
+---  id, but it is most important when dealing with ‘whatsits’, because they are differentiated
+---  solely based on their subtype.
 ---
 ---The other available fields depend on the id (and for ‘whatsits’, the subtype)
 ---of the node.

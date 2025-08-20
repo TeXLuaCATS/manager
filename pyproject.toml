@@ -19,3 +19,8 @@ build-backend = "uv_build"
 
 [tool.uv]
 package = true
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]

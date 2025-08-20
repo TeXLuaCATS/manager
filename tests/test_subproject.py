@@ -1,3 +1,4 @@
+import pytest
 from manager import Folder, Subproject, Repository
 
 
@@ -10,6 +11,7 @@ def test_merge(subproject: Subproject, meta_repo: Repository) -> None:
     assert "@meta" in subproject.merge_defintions.content
 
 
+@pytest.mark.slow
 def test_download_manuals(subproject: Subproject, meta_repo: Repository) -> None:
     folder = subproject.manuals_folder
     folder.clear()

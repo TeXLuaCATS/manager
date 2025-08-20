@@ -522,6 +522,7 @@ class TextFile:
                     or line.startswith("---|")
                     or line.startswith("---😱 [Types]")
                     or line.startswith("---* ")
+                    or re.match(r"^---\s\s*\w", line) is not None
                     or is_fenced_code_block
                 ):
                     lines_no_comment: list[str] = []
