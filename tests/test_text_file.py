@@ -270,3 +270,87 @@ function socket.udp6() end""")
 ---😱 [Types](https://github.com/LuaCATS/luasocket/blob/main/library/socket.lua) incomplete or incorrect? 🙏 [Please contribute!](https://github.com/LuaCATS/luasocket/pulls)
 function socket.udp6() end"""
         )
+
+    def test_unordered_list(self) -> None:
+        assert (
+            rewrap(
+                """
+---
+---Append a node list to *TeX*'s “current list”.
+---
+---The
+---node list is not deep-copied! There is no error checking either! You mignt need
+---to enforce horizontal mode in order for this to work as expected.
+---
+---__Reference:__
+---
+---* Source file of the `LuaTeX` manual: [luatex-nodes.tex#L2518-L2521](https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/f52b099f3e01d53dc03b315e1909245c3d5418d3/manual/luatex-nodes.tex#L2518-L2521), [luatex-nodes.tex#L1913-L1923](https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/f52b099f3e01d53dc03b315e1909245c3d5418d3/manual/luatex-nodes.tex#L1913-L1923)
+---* Corresponding C source code: [lnodelib.c#L2529-L2552](https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/f52b099f3e01d53dc03b315e1909245c3d5418d3/source/texk/web2c/luatexdir/lua/lnodelib.c#L2529-L2552)
+---
+---@param d integer # The index number of the node in the memory table for direct access.
+---
+---{{ contribute }}
+function node.direct.write(d) end"""
+            )
+            == """
+---
+---Append a node list to *TeX*'s “current list”.
+---
+---The node list is not deep-copied! There is no error checking either! You
+---mignt need to enforce horizontal mode in order for this to work as expected.
+---
+---__Reference:__
+---
+---* Source file of the `LuaTeX` manual: [luatex-nodes.tex#L2518-L2521](https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/f52b099f3e01d53dc03b315e1909245c3d5418d3/manual/luatex-nodes.tex#L2518-L2521), [luatex-nodes.tex#L1913-L1923](https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/f52b099f3e01d53dc03b315e1909245c3d5418d3/manual/luatex-nodes.tex#L1913-L1923)
+---* Corresponding C source code: [lnodelib.c#L2529-L2552](https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/f52b099f3e01d53dc03b315e1909245c3d5418d3/source/texk/web2c/luatexdir/lua/lnodelib.c#L2529-L2552)
+---
+---@param d integer # The index number of the node in the memory table for direct access.
+---
+function node.direct.write(d) end"""
+        )
+
+    def test_multiline_unorderd_list(self) -> None:
+        assert (
+            rewrap("""
+---The node library contains functions that facilitate dealing with (lists of) nodes and their values.
+---They allow you to create, alter, copy, delete, and insert LuaTEX node objects, the core objects
+---within the typesetter.
+---
+---LuaTEX nodes are represented in Lua as userdata with the metadata type `luatex.node.` The
+---various parts within a node can be accessed using named fields.
+---
+---Each node has at least the three fields next, id, and subtype:
+---
+---* The next field returns the userdata object for the next node in a linked list of nodes, or nil,
+---  if there is no next node.
+---* The id indicates TEX’s ‘node type’. The field id has a numeric value for efficiency reasons,
+---  but some of the library functions also accept a string value instead of id.
+---* The subtype is another number. It often gives further information about a node of a particular
+---  id, but it is most important when dealing with ‘whatsits’, because they are differentiated
+---  solely based on their subtype.
+---
+---The other available fields depend on the id (and for ‘whatsits’, the subtype) of the node.
+---""")
+            == """
+---The node library contains functions that facilitate dealing with (lists of)
+---nodes and their values. They allow you to create, alter, copy, delete, and
+---insert LuaTEX node objects, the core objects within the typesetter.
+---
+---LuaTEX nodes are represented in Lua as userdata with the metadata type
+---`luatex.node.` The various parts within a node can be accessed using named
+---fields.
+---
+---Each node has at least the three fields next, id, and subtype:
+---
+---* The next field returns the userdata object for the next node in a linked list of nodes, or nil,
+---  if there is no next node.
+---* The id indicates TEX’s ‘node type’. The field id has a numeric value for efficiency reasons,
+---  but some of the library functions also accept a string value instead of id.
+---* The subtype is another number. It often gives further information about a node of a particular
+---  id, but it is most important when dealing with ‘whatsits’, because they are
+---differentiated   solely based on their subtype.
+---
+---The other available fields depend on the id (and for ‘whatsits’, the subtype)
+---of the node.
+---"""
+        )

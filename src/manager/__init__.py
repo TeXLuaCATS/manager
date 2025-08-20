@@ -521,6 +521,7 @@ class TextFile:
                     or line.startswith("---@")
                     or line.startswith("---|")
                     or line.startswith("---😱 [Types]")
+                    or line.startswith("---* ")
                     or is_fenced_code_block
                 ):
                     lines_no_comment: list[str] = []
