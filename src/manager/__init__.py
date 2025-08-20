@@ -957,14 +957,17 @@ class Subproject:
         if downstream is not None:
             downstream.sync_from_remote()
 
-    def format(self) -> None:
-        _run_stylua(self.library.path)
-        for file in self.library.list():
-            file.clean_docstrings(save=True)
-        if self.downstream_library:
-            for file in self.downstream_library.list():
+    def format(self, rewrap: bool) -> None:
+        def __format(folder: Folder, rewrap: bool):
+            for file in folder.list():
                 file.clean_docstrings(save=True)
-            _run_stylua(self.downstream_library.path)
+                if rewrap:
+                    file.rewrap(save=True)
+            _run_stylua(folder.path)
+
+        __format(self.library, rewrap)
+        if self.downstream_library:
+            __format(self.downstream_library, rewrap)
 
     def merge(
         self,
@@ -1454,10 +1457,11 @@ def example(
 
 
 @cli.command()
-def format() -> None:
+@click.option("--rewrap", is_flag=True, help="Rewrap docstrings.")
+def format(rewrap: bool) -> None:
     """Format the lua docstrings (Remove duplicate empty comment lines, start docstring with an empty line)"""
     for subproject in subprojects:
-        subproject.format()
+        subproject.format(rewrap)
 
 
 @cli.command()
