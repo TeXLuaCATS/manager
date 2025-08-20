@@ -306,12 +306,13 @@ function node.direct.write(d) end"""
 ---
 ---@param d integer # The index number of the node in the memory table for direct access.
 ---
+---{{ contribute }}
 function node.direct.write(d) end"""
         )
 
     def test_multiline_unorderd_list(self) -> None:
         assert (
-            rewrap("""
+            rewrap("""---
 ---The node library contains functions that facilitate dealing with (lists of) nodes and their values.
 ---They allow you to create, alter, copy, delete, and insert LuaTEX node objects, the core objects
 ---within the typesetter.
@@ -329,7 +330,7 @@ function node.direct.write(d) end"""
 ---
 ---The other available fields depend on the id (and for ‘whatsits’, the subtype) of the node.
 ---""")
-            == """
+            == """---
 ---The node library contains functions that facilitate dealing with (lists of)
 ---nodes and their values. They allow you to create, alter, copy, delete, and
 ---insert LuaTEX node objects, the core objects within the typesetter.
