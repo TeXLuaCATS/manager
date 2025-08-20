@@ -513,7 +513,7 @@ class TextFile:
             if line.startswith("---"):
                 if line.startswith("---```") and not is_fenced_code_block:
                     is_fenced_code_block = True
-                if line.startswith("---```") and is_fenced_code_block:
+                elif line.startswith("---```") and is_fenced_code_block:
                     is_fenced_code_block = False
 
                 if (
