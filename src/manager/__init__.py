@@ -123,7 +123,7 @@ def _run_pygmentize(
     path: Optional[Union[Path, str]] = None, stdin: Optional[str] = None
 ) -> None:
     if not path and not stdin or path and stdin:
-        raise Exception("Specify path OR content")
+        raise Exception(f"Specify path OR content, got: path: {path} stdin: {stdin}")
 
     if path:
         subprocess.check_call(
@@ -505,6 +505,8 @@ class TextFile:
 
     def rewrap(self, save: bool = False) -> str:
         """The Rewrap extension (https://github.com/dnut/Rewrap) does not support rewraping of thee hyphens prefixed comment lines."""
+        if self.content == "":
+            return ""
         lines: list[str] = []
         is_fenced_code_block = False
 
@@ -541,7 +543,8 @@ class TextFile:
                 lines.append(line)
 
         self.content = "\n".join(lines)
-        _run_pygmentize(stdin=self.content)
+        if self.content != "":
+            _run_pygmentize(stdin=self.content)
         return self.finalize(save)
 
     def save(self) -> None:
