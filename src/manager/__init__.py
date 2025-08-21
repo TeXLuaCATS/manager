@@ -1372,7 +1372,7 @@ subprojects = SubprojectContainer(
             "LuaCATS/upstream/luasocket/library/socket.lua": "socket.lua",
             "LuaCATS/upstream/md5/library/md5.lua": "md5.lua",
             "LuaCATS/upstream/slnunicode/library/unicode.lua": "unicode.lua",
-            "LuaCATS/upstream/lzlib/library/zlib.lua": "zlib.lua",
+            # "LuaCATS/upstream/lzlib/library/zlib.lua": "zlib.lua", to many differences
             "LuaCATS/upstream/luazip/library/zip.lua": "zip.lua",
         },
     ),
@@ -1801,22 +1801,23 @@ _N._4_3_lua_modules = "page 67"
         True,
     )
 
-    # zlib
+    # (zlib) differs a lot from the upstream project
 
-    zlib = luatex.get("library/zlib.lua")
-    zlib.prepend(
-        """
--- A helper table to better navigate through the documentation using the
--- outline: https://github.com/Josef-Friedrich/LuaTeX_Lua-API#navigation-table-_n
-_N = {}
 
-_N._4_3_lua_modules = "page 67"
+#     zlib = luatex.get("library/zlib.lua")
+#     zlib.prepend(
+#         """
+# -- A helper table to better navigate through the documentation using the
+# -- outline: https://github.com/Josef-Friedrich/LuaTeX_Lua-API#navigation-table-_n
+# _N = {}
 
----
----Changes to upstream: global zlib table
-""",
-        True,
-    )
+# _N._4_3_lua_modules = "page 67"
+
+# ---
+# ---Changes to upstream: global zlib table
+# """,
+#         True,
+#    )
 
 
 @cli.command()
