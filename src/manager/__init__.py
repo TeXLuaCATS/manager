@@ -194,6 +194,9 @@ class TextFile:
         self.content = self.path.read_text()
         self.orig_content = self.content
 
+    def __str__(self) -> str:
+        return str(self.path)
+
     @property
     def filename(self) -> str:
         return self.path.name
@@ -203,16 +206,64 @@ class TextFile:
         self.path.write_text(text)
         self.content = text
 
+    def replace(self, old: str, new: str, save: bool = False) -> str:
+        """
+        Replaces occurrences of a substring with a new string in the content.
+
+        Args:
+            old: The substring to be replaced.
+            new: The string to replace the old substring with.
+            save: If True, saves the changes after replacement. Defaults to False.
+
+        Returns:
+            str: The updated content after the replacement.
+        """
+        self.content = self.content.replace(old, new)
+        return self.finalize(save)
+
     def remove_duplicate_empty_lines(self, save: bool = False) -> str:
-        """Remove duplicate empty lines."""
+        """
+        Removes consecutive duplicate empty lines from the content.
+
+        Args:
+            save: If True, saves the modified content. Defaults to False.
+
+        Returns:
+            str: The finalized content after removing duplicate empty lines.
+        """
         self.content = re.sub("\n\n+", "\n\n", self.content)
         return self.finalize(save)
 
     def remove_return_statement(self, save: bool = False) -> str:
+        """
+        Removes all 'return' statements from the content.
+
+        This method uses a regular expression to find and remove lines that
+        start with the keyword 'return', followed by any content, in the stored
+        content. Optionally, the updated content can be saved.
+
+        Args:
+            save: If True, the updated content will be saved. Defaults
+            to False.
+
+        Returns:
+            str: The finalized content after removing 'return' statements.
+        """
         self.content = re.sub(r"^return .+\n?", "", self.content, flags=re.MULTILINE)
         return self.finalize(save)
 
     def convert_local_to_global_table(self, save: bool = False) -> str:
+        """
+        Converts the first occurrence of a Lua-style local table declaration
+        to a global table declaration within the content. The conversion
+        changes a line like `local table_name = {}` to `table_name = {}`.
+
+        Args:
+            save: If True, the changes will be saved. Defaults to False.
+
+        Returns:
+            str: The finalized content after the conversion.
+        """
         self.content = re.sub(
             r"^local ([a-z_][a-z_0-9]*) ?= ?\{ ?\}",
             r"\1 = {}",
@@ -610,6 +661,9 @@ class Folder:
         ):
             yield TextFile(path)
 
+    def __str__(self) -> str:
+        return str(self.path)
+
     def get(self, relpath: Union[str, Path]) -> TextFile:
         """
         Retrieve a TextFile object for the given relative path.
@@ -908,7 +962,7 @@ class Subproject:
         return self._dist_library
 
     @property
-    def merge_defintions(self) -> TextFile:
+    def merged_defintions(self) -> TextFile:
         """The text file where the merged definitions are stored."""
         return TextFile(self.dist / "merged_defintions.lua")
 
@@ -942,6 +996,18 @@ class Subproject:
         if not path.exists():
             path.mkdir(parents=True)
         return Folder(path)
+
+    def get(self, relpath: Union[str, Path]) -> TextFile:
+        """
+        Retrieve a TextFile object for the given relative path in the main repository.
+
+        Args:
+            relpath: The relative path to the file within the main repository.
+
+        Returns:
+            TextFile: An instance of TextFile representing the file at the specified path.
+        """
+        return TextFile(self.repo.path / relpath)
 
     def download_manuals(self) -> None:
         def _download(src_filename: str, dest_filename: Optional[str] = None) -> None:
@@ -1028,8 +1094,8 @@ class Subproject:
         content = "\n".join(contents)
         # Artefact of the copyright removal
         content = content.replace("\n\n---\n\n", "")
-        self.merge_defintions.write(content)
-        self.merge_defintions.clean_docstrings(save=True)
+        self.merged_defintions.write(content)
+        self.merged_defintions.clean_docstrings(save=True)
 
     def distribute(self, sync_to_remote: bool = True) -> None:
         dist = Folder(self.dist / "library")
@@ -1516,6 +1582,12 @@ def external_definitions() -> None:
     """Sync external definitions"""
     for subproject in subprojects:
         subproject.sync_external_defintions()
+
+    luametatex = subprojects.get("luametatex")
+    xmath = luametatex.get("library/xmath.lua")
+    xmath.replace("mathx.", "xmath.")
+    xmath.replace("mathx =", "xmath =")
+    xmath.save()
 
 
 @cli.command()

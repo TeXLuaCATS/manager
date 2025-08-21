@@ -1,14 +1,53 @@
 import pytest
-from manager import Folder, Subproject, Repository
+
+from manager import Folder, Repository, Subproject
+
+
+def test_name(subproject: Subproject, meta_repo: Repository) -> None:
+    assert subproject.name == "LuaTeX"
+
+
+def test_lowercase_name(subproject: Subproject, meta_repo: Repository) -> None:
+    assert subproject.lowercase_name == "luatex"
+
+
+def test_get(subproject: Subproject, meta_repo: Repository) -> None:
+    text_file = subproject.get("library/node.lua")
+    assert (
+        str(text_file.path) == "/tmp/TeXLuaCATS_meta/TeXLuaCATS/LuaTeX/library/node.lua"
+    )
+
+
+def test_base(subproject: Subproject, meta_repo: Repository) -> None:
+    assert str(subproject.base) == "/tmp/TeXLuaCATS_meta/TeXLuaCATS/LuaTeX"
+
+
+def test_library(subproject: Subproject, meta_repo: Repository) -> None:
+    assert str(subproject.library) == "/tmp/TeXLuaCATS_meta/TeXLuaCATS/LuaTeX/library"
+
+
+def test_dist(subproject: Subproject, meta_repo: Repository) -> None:
+    assert str(subproject.dist) == "/tmp/TeXLuaCATS_meta/dist/LuaTeX"
+
+
+def test_dist_library(subproject: Subproject, meta_repo: Repository) -> None:
+    assert str(subproject.dist_library) == "/tmp/TeXLuaCATS_meta/dist/LuaTeX/library"
+
+
+def test_merged_defintions(subproject: Subproject, meta_repo: Repository) -> None:
+    assert (
+        str(subproject.merged_defintions)
+        == "/tmp/TeXLuaCATS_meta/dist/LuaTeX/merged_defintions.lua"
+    )
 
 
 def test_merge(subproject: Subproject, meta_repo: Repository) -> None:
-    assert subproject.merge_defintions.content == ""
-    assert len(subproject.merge_defintions.content) == 0
+    assert subproject.merged_defintions.content == ""
+    assert len(subproject.merged_defintions.content) == 0
     subproject.merge()
-    assert len(subproject.merge_defintions.content) > 0
-    assert "\nreturn " not in subproject.merge_defintions.content
-    assert "@meta" in subproject.merge_defintions.content
+    assert len(subproject.merged_defintions.content) > 0
+    assert "\nreturn " not in subproject.merged_defintions.content
+    assert "@meta" in subproject.merged_defintions.content
 
 
 @pytest.mark.slow

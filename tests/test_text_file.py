@@ -58,6 +58,7 @@ def test_convert_local_to_global_table(
     file.convert_local_to_global_table()
     assert file.content == "tmp_1 = {}\nlocal tmp_2 = {}"
 
+
 @pytest.fixture
 def links(TmpTextFile: Callable[[str], TextFile]) -> TextFile:
     return TmpTextFile("reference-links.lua")
