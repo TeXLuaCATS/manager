@@ -853,6 +853,8 @@ class Subproject:
 
     manuals_base_url: Optional[str] = None
 
+    external_definitions: Optional[dict[str, str]] = None
+
     @property
     def lowercase_name(self) -> str:
         """For example: ``luatex``"""
@@ -947,6 +949,12 @@ class Subproject:
                 for src_filename, dest_filename in self.manuals.items():
                     if dest_filename:
                         _download(src_filename, dest_filename)
+
+    def sync_external_defintions(self) -> None:
+        if self.external_definitions is None:
+            return
+        for src, dest in self.external_definitions.items():
+            shutil.copyfile(basepath / src, self.library.path / dest)
 
     def sync_from_remote(self) -> None:
         """
