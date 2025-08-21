@@ -202,9 +202,49 @@ class TextFile:
         return self.path.name
 
     def write(self, text: str) -> None:
+        """
+        Writes the given text to the file at the specified path and updates the content attribute.
+
+        Args:
+            text: The text to be written to the file.
+
+        Logs:
+            Logs an informational message indicating the file path where the text is written.
+        """
         logger.info("Write to %s", Color.green(self.path))
         self.path.write_text(text)
         self.content = text
+
+    def prepend(self, text: str, save: bool = False) -> str:
+        """
+        Prepends the given text to the current content, removes duplicate empty lines,
+        and optionally saves the updated content.
+
+        Args:
+            text: The text to prepend to the current content.
+            save: If True, saves the updated content. Defaults to False.
+
+        Returns:
+            str: The finalized content after prepending and processing.
+        """
+        self.content = text + "\n" + self.content
+        self.remove_duplicate_empty_lines()
+        return self.finalize(save)
+
+    def append(self, text: str, save: bool = False) -> str:
+        """
+        Appends the given text to the current content and optionally saves the result.
+
+        Args:
+            text: The text to append to the current content.
+            save: If True, the content will be saved after appending. Defaults to False.
+
+        Returns:
+            str: The finalized content after appending the text.
+        """
+        self.content = self.content + "\n" + text
+        self.remove_duplicate_empty_lines()
+        return self.finalize(save)
 
     def replace(self, old: str, new: str, save: bool = False) -> str:
         """
@@ -1588,6 +1628,159 @@ def external_definitions() -> None:
     xmath.replace("mathx.", "xmath.")
     xmath.replace("mathx =", "xmath =")
     xmath.save()
+
+    luatex = subprojects.get("luatex")
+
+    # lfs
+
+    lfs = luatex.get("library/lfs.lua")
+    lfs.prepend(
+        """_N._4_3_lua_modules = "page 67"
+
+---
+---The definitions are developed in this repository: https://github.com/LuaCATS/luafilesystem
+---https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luafilesystem/src/lfs.c
+---Changes to upstream: global lfs table
+""",
+        True,
+    )
+
+    # lpeg
+
+    lpeg = luatex.get("library/lpeg.lua")
+    lpeg.replace(
+        "function lpeg.utfR(cp1, cp2) end", "---function lpeg.utfR(cp1, cp2) end"
+    )
+    lpeg.prepend("""_N._4_3_lua_modules = "page 67"
+
+---
+---https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luapeg/lpeg.c
+---Changes to upstream: global lpeg table""")
+    lpeg.save()
+
+    # mbox
+
+    mbox = luatex.get("library/mbox.lua")
+    mbox.prepend(
+        """
+-- A helper table to better navigate through the documentation using the
+-- outline: https://github.com/Josef-Friedrich/LuaTeX_Lua-API#navigation-table-_n
+_N = {}
+
+_N._4_3_lua_modules = "page 67"
+
+---
+---https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/trunk/source/texk/web2c/luatexdir/luasocket/src/mbox.lua
+---Changes to upstream: global mbox table
+""",
+        True,
+    )
+
+    # md5
+
+    md5 = luatex.get("library/md5.lua")
+    md5.prepend(
+        """
+-- A helper table to better navigate through the documentation using the
+-- outline: https://github.com/Josef-Friedrich/LuaTeX_Lua-API#navigation-table-_n
+_N = {}
+
+_N._4_3_lua_modules = "page 67"
+
+---
+---https://github.com/TeX-Live/luatex/tree/f52b099f3e01d53dc03b315e1909245c3d5418d3/source/texk/web2c/luatexdir/luamd5
+---https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/517487384d3b0b4b003fb3180ea415f52eeb5f5f/source/texk/web2c/luatexdir/lua/luatex-core.lua#L220-L241
+---Changes to upstream:
+---* local md5 table
+---* additional function md5.sumHEXA()
+
+""",
+    )
+    md5.append(
+        """
+---
+---Compute the MD5 upper case hexadecimal message-digest of the string `message`.
+---
+---Similar to `md5.sum()`
+---but returns its value as a string of 32 hexadecimal digits (upper case letters).
+---
+---__Example:__
+---
+---```lua
+---local hash = md5.sumHEXA('test')
+---assert(hash == '098F6BCD4621D373CADE4E832627B4F6')
+---```
+---
+---@param message string
+---
+---@return string # for example `098F6BCD4621D373CADE4E832627B4F6`
+function md5.sumHEXA(message) end
+""",
+    )
+    md5.save()
+
+    # mime
+
+    mime = luatex.get("library/mime.lua")
+    mime.prepend(
+        """
+-- A helper table to better navigate through the documentation using the
+-- outline: https://github.com/Josef-Friedrich/LuaTeX_Lua-API#navigation-table-_n
+_N = {}
+
+_N._4_3_lua_modules = "page 67"
+
+---
+---https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/trunk/source/texk/web2c/luatexdir/luasocket/src/mime.lua
+---Changes to upstream: global mime table
+""",
+        True,
+    )
+
+    # socket
+
+    socket = luatex.get("library/socket.lua")
+    socket.prepend(
+        """
+---
+---https://github.com/TeX-Live/luatex/tree/master/source/texk/web2c/luatexdir/luasocket/src/socket.lua
+---Changes to upstream: global socket table
+
+---
+-- A helper table to better navigate through the documentation using the
+-- outline: https://github.com/Josef-Friedrich/LuaTeX_Lua-API#navigation-table-_n
+_N = {}
+
+_N._4_3_lua_modules = "page 67"
+
+
+""",
+        True,
+    )
+
+    # unicode
+
+    unicode = luatex.get("library/unicode.lua")
+    unicode.prepend(
+        """
+-- A helper table to better navigate through the documentation using the
+-- outline: https://github.com/Josef-Friedrich/LuaTeX_Lua-API#navigation-table-_n
+_N = {}
+
+_N._4_3_lua_modules = "page 67"
+
+---
+---`slnunicode`, from the `selene` libraries, http://luaforge.net/projects/sln. This library has been slightly extended
+---so that the `unicode.utf8.*` functions also accept the first 256 values
+---of plane 18. This is the range *LuaTeX* uses for raw binary output, as
+---explained above. We have no plans to provide more like this because you can
+---basically do all that you want in *Lua*.
+---
+---Changes to the upstream project: global unicode table
+
+""",
+        True,
+    )
 
 
 @cli.command()
