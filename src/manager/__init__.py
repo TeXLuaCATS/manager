@@ -1782,6 +1782,42 @@ _N._4_3_lua_modules = "page 67"
         True,
     )
 
+    # zip
+
+    zip = luatex.get("library/zip.lua")
+    zip.prepend(
+        """
+-- A helper table to better navigate through the documentation using the
+-- outline: https://github.com/Josef-Friedrich/LuaTeX_Lua-API#navigation-table-_n
+_N = {}
+
+_N._4_3_lua_modules = "page 67"
+
+---
+---https://github.com/TeX-Live/luatex/tree/f52b099f3e01d53dc03b315e1909245c3d5418d3/source/texk/web2c/luatexdir/luazip
+---Changes to upstream: global zip table
+
+---""",
+        True,
+    )
+
+    # zlib
+
+    zlib = luatex.get("library/zlib.lua")
+    zlib.prepend(
+        """
+-- A helper table to better navigate through the documentation using the
+-- outline: https://github.com/Josef-Friedrich/LuaTeX_Lua-API#navigation-table-_n
+_N = {}
+
+_N._4_3_lua_modules = "page 67"
+
+---
+---Changes to upstream: global zlib table
+""",
+        True,
+    )
+
 
 @cli.command()
 @click.option("--rewrap", is_flag=True, help="Rewrap docstrings.")
