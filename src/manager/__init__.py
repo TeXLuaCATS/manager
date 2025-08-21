@@ -214,7 +214,11 @@ class TextFile:
 
     def convert_local_to_global_table(self, save: bool = False) -> str:
         self.content = re.sub(
-            r"^local ([a-z]+) ?= ?\{ ?\}", r"\1 = {}", self.content, flags=re.MULTILINE
+            r"^local ([a-z_][a-z_0-9]*) ?= ?\{ ?\}",
+            r"\1 = {}",
+            self.content,
+            count=1,
+            flags=re.MULTILINE,
         )
         return self.finalize(save)
 

@@ -52,10 +52,11 @@ def test_remove_return_statement(
 def test_convert_local_to_global_table(
     write_to_text_file: Callable[[str], TextFile],
 ) -> None:
-    file = write_to_text_file("local tmp = {}")
-    assert file.content == "local tmp = {}"
+    orig = "local tmp_1 = {}\nlocal tmp_2 = {}"
+    file = write_to_text_file(orig)
+    assert file.content == orig
     file.convert_local_to_global_table()
-    assert file.content == "tmp = {}"
+    assert file.content == "tmp_1 = {}\nlocal tmp_2 = {}"
 
 @pytest.fixture
 def links(TmpTextFile: Callable[[str], TextFile]) -> TextFile:
