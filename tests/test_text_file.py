@@ -7,6 +7,16 @@ import pytest
 from manager import Repository, TextFile
 
 
+@pytest.fixture
+def write_to_text_file(tmp_path: Path) -> Callable[[str], TextFile]:
+    def __inner(content: str) -> TextFile:
+        file = TextFile(tmp_path / "tmp.txt")
+        file.write(content)
+        return file
+
+    return __inner
+
+
 def test_filename(template: TextFile) -> None:
     assert template.filename == "template.lua"
 
@@ -14,6 +24,38 @@ def test_filename(template: TextFile) -> None:
 def test_content(template: TextFile) -> None:
     assert "local function test () end" in template.content
 
+
+def test_write(write_to_text_file: Callable[[str], TextFile]) -> None:
+    file = write_to_text_file("")
+    file.write("test")
+    assert file.content == "test"
+
+
+def test_remove_duplicate_empty_lines(
+    write_to_text_file: Callable[[str], TextFile],
+) -> None:
+    file = write_to_text_file("\n\n\n")
+    assert file.content == "\n\n\n"
+    file.remove_duplicate_empty_lines()
+    assert file.content == "\n\n"
+
+
+def test_remove_return_statement(
+    write_to_text_file: Callable[[str], TextFile],
+) -> None:
+    file = write_to_text_file("\nreturn test")
+    assert file.content == "\nreturn test"
+    file.remove_return_statement()
+    assert file.content == "\n"
+
+
+def test_convert_local_to_global_table(
+    write_to_text_file: Callable[[str], TextFile],
+) -> None:
+    file = write_to_text_file("local tmp = {}")
+    assert file.content == "local tmp = {}"
+    file.convert_local_to_global_table()
+    assert file.content == "tmp = {}"
 
 @pytest.fixture
 def links(TmpTextFile: Callable[[str], TextFile]) -> TextFile:

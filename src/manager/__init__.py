@@ -203,9 +203,20 @@ class TextFile:
         self.path.write_text(text)
         self.content = text
 
-    def _remove_duplicate_empty_lines(self) -> None:
+    def remove_duplicate_empty_lines(self, save: bool = False) -> str:
         """Remove duplicate empty lines."""
         self.content = re.sub("\n\n+", "\n\n", self.content)
+        return self.finalize(save)
+
+    def remove_return_statement(self, save: bool = False) -> str:
+        self.content = re.sub(r"^return .+\n?", "", self.content, flags=re.MULTILINE)
+        return self.finalize(save)
+
+    def convert_local_to_global_table(self, save: bool = False) -> str:
+        self.content = re.sub(
+            r"^local ([a-z]+) ?= ?\{ ?\}", r"\1 = {}", self.content, flags=re.MULTILINE
+        )
+        return self.finalize(save)
 
     def remove_double_dash_comments(self, save: bool = False) -> str:
         """
@@ -250,7 +261,7 @@ class TextFile:
         # Remove the navigation table
         self.content = re.sub(r"^_N.+\n", "", self.content, flags=re.MULTILINE)
 
-        self._remove_duplicate_empty_lines()
+        self.remove_duplicate_empty_lines()
         # Remove leading and trailing whitespace
         self.content = self.content.strip() + "\n"
         return self.finalize(save)
@@ -279,7 +290,7 @@ class TextFile:
         self.content = self.content.replace("\n\n---\n\n", "\n\n")
 
         # Allow only one empty line
-        self._remove_duplicate_empty_lines()
+        self.remove_duplicate_empty_lines()
 
         # Side effect with code examples in Lua docstrings
         # content = content.replace(") end\n---", ") end\n\n---")
@@ -954,7 +965,13 @@ class Subproject:
         if self.external_definitions is None:
             return
         for src, dest in self.external_definitions.items():
-            shutil.copyfile(basepath / src, self.library.path / dest)
+            dest_path = self.library.path / dest
+            if re.match("^https://", src, re.IGNORECASE):
+                _download_url(src, str(dest_path))
+            else:
+                shutil.copyfile(basepath / src, dest_path)
+
+            dest_file = TextFile(dest_path)
 
     def sync_from_remote(self) -> None:
         """
@@ -1200,6 +1217,9 @@ subprojects = SubprojectContainer(
             "luametatex.tex": None,
         },
         manuals_base_url="https://raw.githubusercontent.com/contextgarden/context/refs/heads/main/doc/context/sources/general/manuals/luametatex",
+        external_definitions={
+            "LuaCATS/upstream/lmathx/library/mathx.lua": "xmath.lua",
+        },
     ),
     TeXSubproject("LuaOTFload"),
     TeXSubproject(
@@ -1230,6 +1250,18 @@ subprojects = SubprojectContainer(
             "luatex-titlepage.tex": None,
         },
         manuals_base_url="https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/raw/master/manual",
+        external_definitions={
+            "https://github.com/LuaCATS/luafilesystem/blob/main/library/lfs.lua": "lfs.lua",
+            "LuaCATS/upstream/lpeg/library/lpeg.lua": "lpeg.lua",
+            "LuaCATS/upstream/luaharfbuzz/library/luaharfbuzz.lua": "luaharfbuzz.lua",
+            "LuaCATS/upstream/luasocket/library/mbox.lua": "mbox.lua",
+            "LuaCATS/upstream/luasocket/library/mime.lua": "mime.lua",
+            "LuaCATS/upstream/luasocket/library/socket.lua": "socket.lua",
+            "LuaCATS/upstream/md5/library/md5.lua": "md5.lua",
+            "LuaCATS/upstream/slnunicode/library/unicode.lua": "unicode.lua",
+            "LuaCATS/upstream/lzlib/library/zlib.lua": "zlib.lua",
+            "LuaCATS/upstream/luazip/library/zip.lua": "zip.lua",
+        },
     ),
 )
 
@@ -1470,6 +1502,13 @@ def example(
             _run_example(Path(path), luaonly=luaonly, print_docstring=print_docstring)
     else:
         _run_example(src, luaonly=luaonly, print_docstring=print_docstring)
+
+
+@cli.command()
+def external_definitions() -> None:
+    """Sync external definitions"""
+    for subproject in subprojects:
+        subproject.sync_external_defintions()
 
 
 @cli.command()
