@@ -1324,7 +1324,7 @@ subprojects = SubprojectContainer(
         },
         manuals_base_url="https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/raw/master/manual",
         external_definitions={
-            "https://github.com/LuaCATS/luafilesystem/blob/main/library/lfs.lua": "lfs.lua",
+            "https://raw.githubusercontent.com/LuaCATS/luafilesystem/refs/heads/main/library/lfs.lua": "lfs.lua",
             "LuaCATS/upstream/lpeg/library/lpeg.lua": "lpeg.lua",
             "LuaCATS/upstream/luaharfbuzz/library/luaharfbuzz.lua": "luaharfbuzz.lua",
             "LuaCATS/upstream/luasocket/library/mbox.lua": "mbox.lua",
