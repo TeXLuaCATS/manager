@@ -966,12 +966,15 @@ class Subproject:
             return
         for src, dest in self.external_definitions.items():
             dest_path = self.library.path / dest
-            if re.match("^https://", src, re.IGNORECASE):
+            if re.match(r"^https?://", src, re.IGNORECASE):
                 _download_url(src, str(dest_path))
             else:
                 shutil.copyfile(basepath / src, dest_path)
 
             dest_file = TextFile(dest_path)
+            dest_file.remove_return_statement()
+            dest_file.convert_local_to_global_table()
+            dest_file.save()
 
     def sync_from_remote(self) -> None:
         """
