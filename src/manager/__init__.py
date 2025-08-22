@@ -349,9 +349,9 @@ class TextFile:
         """
 
         self.content = self.content.replace(
-            "-- The `_N` table makes it easier to navigate through the type definitions with\n" +
-            "-- the help of the outline:\n" +
-            "-- https://github.com/TeXLuaCATS/meta?tab=readme-ov-file#navigation-table-_n\n"
+            "-- The `_N` table makes it easier to navigate through the type definitions with\n"
+            + "-- the help of the outline:\n"
+            + "-- https://github.com/TeXLuaCATS/meta?tab=readme-ov-file#navigation-table-_n\n",
             "",
         )
         # Remove the navigation table

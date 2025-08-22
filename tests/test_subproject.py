@@ -75,7 +75,11 @@ def test_distribute(subproject: Subproject, meta_repo: Repository) -> None:
 
     assert dist.count() == 36
 
-    assert "function callback.register" in dist.get("library/callback.lua").content
+    callback_content = dist.get("library/callback.lua").content
+
+    assert "function callback.register" in callback_content
+    assert "-- The `_N` table makes it easier to navigate through the type definitions" not in callback_content
+
     assert library.count() == 34
     for file in library.list():
         assert "\n_N." not in file.content
