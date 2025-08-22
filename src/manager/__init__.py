@@ -1649,8 +1649,10 @@ def external_definitions() -> None:
     lfs.prepend(
         navigation_table
         + """---
----https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luafilesystem/src/lfs.c
----Changes to upstream: global lfs table
+---Corresponding directory in the LuaTeX repository: https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luafilesystem
+---Corresponding file in the LuaTeX repository: https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luafilesystem/src/lfs.c
+---
+---Changes to the upstream project: global lfs table
 """,
         True,
     )
@@ -1664,8 +1666,10 @@ def external_definitions() -> None:
     lpeg.prepend(
         navigation_table
         + """---
----https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luapeg/lpeg.c
----Changes to upstream: global lpeg table"""
+---Corresponding directory in the LuaTeX repository: https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luapeg
+---Corresponding file in the LuaTeX repository: https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luapeg/lpeg.c
+---
+---Changes to the upstream project: global lpeg table"""
     )
     lpeg.save()
 
@@ -1675,8 +1679,10 @@ def external_definitions() -> None:
     mbox.prepend(
         navigation_table
         + """---
----https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luasocket/src/mbox.lua
----Changes to upstream: global mbox table
+---Corresponding directory in the LuaTeX repository: https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luasocket
+---Corresponding file in the LuaTeX repository: https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luasocket/src/mbox.lua
+---
+---Changes to the upstream project: global mbox table
 """,
         True,
     )
@@ -1687,9 +1693,10 @@ def external_definitions() -> None:
     md5.prepend(
         navigation_table
         + """---
----https://github.com/TeX-Live/luatex/tree/f52b099f3e01d53dc03b315e1909245c3d5418d3/source/texk/web2c/luatexdir/luamd5
----https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/lua/luatex-core.lua#L220-L241
----Changes to upstream:
+---Corresponding directory in the LuaTeX repository: https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luamd5
+---Corresponding file in the LuaTeX repository: https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luamd5/md5lib.c
+---
+---Changes to the upstream project:
 ---* local md5 table
 ---* additional function md5.sumHEXA()
 
@@ -1724,8 +1731,10 @@ function md5.sumHEXA(message) end
     mime.prepend(
         navigation_table
         + """---
----https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luasocket/src/mime.lua
----Changes to upstream: global mime table
+---Corresponding directory in the LuaTeX repository: https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luasocket
+---Corresponding file in the LuaTeX repository: https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luasocket/src/mime.lua
+---
+---Changes to the upstream project: global mime table
 """,
         True,
     )
@@ -1736,8 +1745,10 @@ function md5.sumHEXA(message) end
     socket.prepend(
         navigation_table
         + """---
----https://github.com/TeX-Live/luatex/tree/master/source/texk/web2c/luatexdir/luasocket/src/socket.lua
----Changes to upstream: global socket table
+---Corresponding directory in the LuaTeX repository: https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luasocket
+---Corresponding file in the LuaTeX repository: https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luasocket/src/socket.lua
+---
+---Changes to the upstream project: global socket table
 """,
         True,
     )
@@ -1748,11 +1759,15 @@ function md5.sumHEXA(message) end
     unicode.prepend(
         navigation_table
         + """---
----`slnunicode`, from the `selene` libraries, http://luaforge.net/projects/sln. This library has been slightly extended
----so that the `unicode.utf8.*` functions also accept the first 256 values
----of plane 18. This is the range *LuaTeX* uses for raw binary output, as
----explained above. We have no plans to provide more like this because you can
----basically do all that you want in *Lua*.
+---Corresponding directory in the LuaTeX repository: https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/tree/master/source/texk/web2c/luatexdir/slnunicode
+---Corresponding file in the LuaTeX repository: https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/slnunicode/slnunico.c
+---
+---`slnunicode`, from the `selene` libraries, http://luaforge.net/projects/sln.
+---This library has been slightly extended so that the `unicode.utf8.*`
+---functions also accept the first 256 values of plane 18. This is the range
+---*LuaTeX* uses for raw binary output, as explained above. We have no plans to
+---provide more like this because you can basically do all that you want in
+---*Lua*.
 ---
 ---Changes to the upstream project: global unicode table
 """,
@@ -1765,10 +1780,11 @@ function md5.sumHEXA(message) end
     zip.prepend(
         navigation_table
         + """---
----https://github.com/TeX-Live/luatex/tree/f52b099f3e01d53dc03b315e1909245c3d5418d3/source/texk/web2c/luatexdir/luazip
----Changes to upstream: global zip table
-
----""",
+---Corresponding directory in the LuaTeX repository: https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/tree/master/source/texk/web2c/luatexdir/luazip
+---Corresponding file in the LuaTeX repository: https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luazip/src/luazip.c
+---
+---Changes to the upstream project: global zip table
+""",
         True,
     )
 
