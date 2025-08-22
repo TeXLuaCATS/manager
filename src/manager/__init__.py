@@ -349,8 +349,9 @@ class TextFile:
         """
 
         self.content = self.content.replace(
-            "---A helper table to better navigate through the documentation using the\n"
-            + "---outline: https://github.com/Josef-Friedrich/LuaTeX_Lua-API#navigation-table-_n\n",
+            "-- The `_N` table makes it easier to navigate through the type definitions with\n" +
+            "-- the help of the outline:\n" +
+            "-- https://github.com/TeXLuaCATS/meta?tab=readme-ov-file#navigation-table-_n\n"
             "",
         )
         # Remove the navigation table
@@ -1663,8 +1664,9 @@ def external_definitions() -> None:
     mbox = luatex.get("library/mbox.lua")
     mbox.prepend(
         """
--- A helper table to better navigate through the documentation using the
--- outline: https://github.com/Josef-Friedrich/LuaTeX_Lua-API#navigation-table-_n
+-- The `_N` table makes it easier to navigate through the type definitions with
+-- the help of the outline:
+-- https://github.com/TeXLuaCATS/meta?tab=readme-ov-file#navigation-table-_n
 _N = {}
 
 _N._4_3_lua_modules = "page 67"
@@ -1681,8 +1683,9 @@ _N._4_3_lua_modules = "page 67"
     md5 = luatex.get("library/md5.lua")
     md5.prepend(
         """
--- A helper table to better navigate through the documentation using the
--- outline: https://github.com/Josef-Friedrich/LuaTeX_Lua-API#navigation-table-_n
+-- The `_N` table makes it easier to navigate through the type definitions with
+-- the help of the outline:
+-- https://github.com/TeXLuaCATS/meta?tab=readme-ov-file#navigation-table-_n
 _N = {}
 
 _N._4_3_lua_modules = "page 67"
@@ -1724,8 +1727,9 @@ function md5.sumHEXA(message) end
     mime = luatex.get("library/mime.lua")
     mime.prepend(
         """
--- A helper table to better navigate through the documentation using the
--- outline: https://github.com/Josef-Friedrich/LuaTeX_Lua-API#navigation-table-_n
+-- The `_N` table makes it easier to navigate through the type definitions with
+-- the help of the outline:
+-- https://github.com/TeXLuaCATS/meta?tab=readme-ov-file#navigation-table-_n
 _N = {}
 
 _N._4_3_lua_modules = "page 67"
@@ -1747,8 +1751,9 @@ _N._4_3_lua_modules = "page 67"
 ---Changes to upstream: global socket table
 
 ---
--- A helper table to better navigate through the documentation using the
--- outline: https://github.com/Josef-Friedrich/LuaTeX_Lua-API#navigation-table-_n
+-- The `_N` table makes it easier to navigate through the type definitions with
+-- the help of the outline:
+-- https://github.com/TeXLuaCATS/meta?tab=readme-ov-file#navigation-table-_n
 _N = {}
 
 _N._4_3_lua_modules = "page 67"
@@ -1763,8 +1768,9 @@ _N._4_3_lua_modules = "page 67"
     unicode = luatex.get("library/unicode.lua")
     unicode.prepend(
         """
--- A helper table to better navigate through the documentation using the
--- outline: https://github.com/Josef-Friedrich/LuaTeX_Lua-API#navigation-table-_n
+-- The `_N` table makes it easier to navigate through the type definitions with
+-- the help of the outline:
+-- https://github.com/TeXLuaCATS/meta?tab=readme-ov-file#navigation-table-_n
 _N = {}
 
 _N._4_3_lua_modules = "page 67"
@@ -1787,8 +1793,9 @@ _N._4_3_lua_modules = "page 67"
     zip = luatex.get("library/zip.lua")
     zip.prepend(
         """
--- A helper table to better navigate through the documentation using the
--- outline: https://github.com/Josef-Friedrich/LuaTeX_Lua-API#navigation-table-_n
+-- The `_N` table makes it easier to navigate through the type definitions with
+-- the help of the outline:
+-- https://github.com/TeXLuaCATS/meta?tab=readme-ov-file#navigation-table-_n
 _N = {}
 
 _N._4_3_lua_modules = "page 67"
@@ -1808,7 +1815,7 @@ _N._4_3_lua_modules = "page 67"
 #     zlib.prepend(
 #         """
 # -- A helper table to better navigate through the documentation using the
-# -- outline: https://github.com/Josef-Friedrich/LuaTeX_Lua-API#navigation-table-_n
+# -- outline: https://github.com/TeXLuaCATS/meta?tab=readme-ov-file#navigation-table-_n
 # _N = {}
 
 # _N._4_3_lua_modules = "page 67"
