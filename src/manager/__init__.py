@@ -1633,6 +1633,14 @@ def external_definitions() -> None:
     xmath = luametatex.get("library/xmath.lua")
     xmath.replace("mathx.", "xmath.")
     xmath.replace("mathx =", "xmath =")
+    xmath.prepend(
+        """---
+---Corresponding directory in the LuaTeX repository: https://github.com/contextgarden/luametatex/blob/main/source/luarest
+---Corresponding file in the LuaMetaTeX repository: https://github.com/contextgarden/luametatex/blob/main/source/luarest/lmtxmathlib.c
+---
+---Changes to the upstream project: renamed global mathx table (mathx -> xmath)
+""",
+    )
     xmath.save()
 
     luatex = subprojects.get("luatex")
