@@ -44,7 +44,8 @@ def set_subproject(subproject: Optional[str]) -> None:
     current_subproject = subproject
 
 
-copyright_notice = f"""-- -----------------------------------------------------------------------------
+text_blocks = {
+    "copyright_notice": f"""-- -----------------------------------------------------------------------------
 -- Copyright (C) 2022-{datetime.now().year} by Josef Friedrich <josef@friedrich.rocks>
 -- -----------------------------------------------------------------------------
 --
@@ -61,7 +62,11 @@ copyright_notice = f"""-- ------------------------------------------------------
 -- You should have received a copy of the GNU General Public License along
 -- with this program. If not, see <https://www.gnu.org/licenses/>.
 --
--- -----------------------------------------------------------------------------"""
+-- -----------------------------------------------------------------------------""",
+    "navigation_table_help": """-- The `_N` table makes it easier to navigate through the type definitions with
+-- the help of the outline:
+-- https://github.com/TeXLuaCATS/meta?tab=readme-ov-file#navigation-table-_n""",
+}
 
 
 class Color:
@@ -1130,7 +1135,7 @@ class Subproject:
             content = content.replace("---@meta\n", "")
             contents.append(content)
         # Add copyright notice and meta definition at the beginning
-        contents.insert(0, copyright_notice)
+        contents.insert(0, text_blocks["copyright_notice"])
         contents.insert(1, "---@meta\n")
         content = "\n".join(contents)
         # Artefact of the copyright removal
@@ -1634,12 +1639,16 @@ def external_definitions() -> None:
 
     # lfs
 
+    navigation_table = (
+        text_blocks["navigation_table_help"]
+        + "\n"
+        + '_N._4_3_lua_modules = "page 70"\n\n'
+    )
+
     lfs = luatex.get("library/lfs.lua")
     lfs.prepend(
-        """_N._4_3_lua_modules = "page 67"
-
----
----The definitions are developed in this repository: https://github.com/LuaCATS/luafilesystem
+        navigation_table
+        + """---
 ---https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luafilesystem/src/lfs.c
 ---Changes to upstream: global lfs table
 """,
@@ -1652,27 +1661,21 @@ def external_definitions() -> None:
     lpeg.replace(
         "function lpeg.utfR(cp1, cp2) end", "---function lpeg.utfR(cp1, cp2) end"
     )
-    lpeg.prepend("""_N._4_3_lua_modules = "page 67"
-
----
+    lpeg.prepend(
+        navigation_table
+        + """---
 ---https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luapeg/lpeg.c
----Changes to upstream: global lpeg table""")
+---Changes to upstream: global lpeg table"""
+    )
     lpeg.save()
 
     # mbox
 
     mbox = luatex.get("library/mbox.lua")
     mbox.prepend(
-        """
--- The `_N` table makes it easier to navigate through the type definitions with
--- the help of the outline:
--- https://github.com/TeXLuaCATS/meta?tab=readme-ov-file#navigation-table-_n
-_N = {}
-
-_N._4_3_lua_modules = "page 67"
-
----
----https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/trunk/source/texk/web2c/luatexdir/luasocket/src/mbox.lua
+        navigation_table
+        + """---
+---https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luasocket/src/mbox.lua
 ---Changes to upstream: global mbox table
 """,
         True,
@@ -1682,17 +1685,10 @@ _N._4_3_lua_modules = "page 67"
 
     md5 = luatex.get("library/md5.lua")
     md5.prepend(
-        """
--- The `_N` table makes it easier to navigate through the type definitions with
--- the help of the outline:
--- https://github.com/TeXLuaCATS/meta?tab=readme-ov-file#navigation-table-_n
-_N = {}
-
-_N._4_3_lua_modules = "page 67"
-
----
+        navigation_table
+        + """---
 ---https://github.com/TeX-Live/luatex/tree/f52b099f3e01d53dc03b315e1909245c3d5418d3/source/texk/web2c/luatexdir/luamd5
----https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/517487384d3b0b4b003fb3180ea415f52eeb5f5f/source/texk/web2c/luatexdir/lua/luatex-core.lua#L220-L241
+---https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/lua/luatex-core.lua#L220-L241
 ---Changes to upstream:
 ---* local md5 table
 ---* additional function md5.sumHEXA()
@@ -1726,16 +1722,9 @@ function md5.sumHEXA(message) end
 
     mime = luatex.get("library/mime.lua")
     mime.prepend(
-        """
--- The `_N` table makes it easier to navigate through the type definitions with
--- the help of the outline:
--- https://github.com/TeXLuaCATS/meta?tab=readme-ov-file#navigation-table-_n
-_N = {}
-
-_N._4_3_lua_modules = "page 67"
-
----
----https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/trunk/source/texk/web2c/luatexdir/luasocket/src/mime.lua
+        navigation_table
+        + """---
+---https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/master/source/texk/web2c/luatexdir/luasocket/src/mime.lua
 ---Changes to upstream: global mime table
 """,
         True,
@@ -1745,20 +1734,10 @@ _N._4_3_lua_modules = "page 67"
 
     socket = luatex.get("library/socket.lua")
     socket.prepend(
-        """
----
+        navigation_table
+        + """---
 ---https://github.com/TeX-Live/luatex/tree/master/source/texk/web2c/luatexdir/luasocket/src/socket.lua
 ---Changes to upstream: global socket table
-
----
--- The `_N` table makes it easier to navigate through the type definitions with
--- the help of the outline:
--- https://github.com/TeXLuaCATS/meta?tab=readme-ov-file#navigation-table-_n
-_N = {}
-
-_N._4_3_lua_modules = "page 67"
-
-
 """,
         True,
     )
@@ -1767,15 +1746,8 @@ _N._4_3_lua_modules = "page 67"
 
     unicode = luatex.get("library/unicode.lua")
     unicode.prepend(
-        """
--- The `_N` table makes it easier to navigate through the type definitions with
--- the help of the outline:
--- https://github.com/TeXLuaCATS/meta?tab=readme-ov-file#navigation-table-_n
-_N = {}
-
-_N._4_3_lua_modules = "page 67"
-
----
+        navigation_table
+        + """---
 ---`slnunicode`, from the `selene` libraries, http://luaforge.net/projects/sln. This library has been slightly extended
 ---so that the `unicode.utf8.*` functions also accept the first 256 values
 ---of plane 18. This is the range *LuaTeX* uses for raw binary output, as
@@ -1783,7 +1755,6 @@ _N._4_3_lua_modules = "page 67"
 ---basically do all that you want in *Lua*.
 ---
 ---Changes to the upstream project: global unicode table
-
 """,
         True,
     )
@@ -1792,15 +1763,8 @@ _N._4_3_lua_modules = "page 67"
 
     zip = luatex.get("library/zip.lua")
     zip.prepend(
-        """
--- The `_N` table makes it easier to navigate through the type definitions with
--- the help of the outline:
--- https://github.com/TeXLuaCATS/meta?tab=readme-ov-file#navigation-table-_n
-_N = {}
-
-_N._4_3_lua_modules = "page 67"
-
----
+        navigation_table
+        + """---
 ---https://github.com/TeX-Live/luatex/tree/f52b099f3e01d53dc03b315e1909245c3d5418d3/source/texk/web2c/luatexdir/luazip
 ---Changes to upstream: global zip table
 
