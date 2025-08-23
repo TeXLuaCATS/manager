@@ -38,8 +38,19 @@ def meta_repo() -> Repository:
 
 
 @pytest.fixture
-def template_path() -> Path:
-    return Path(__file__).resolve().parent / "files" / "template.lua"
+def files_dir() -> Path:
+    """
+    Returns the path to the ``tests/files`` directory.
+
+    Returns:
+        Path: A Path object pointing to the ``tests/files`` directory.
+    """
+    return Path(__file__).parent / "files"
+
+
+@pytest.fixture
+def template_path(files_dir: Path) -> Path:
+    return files_dir / "template.lua"
 
 
 @pytest.fixture
@@ -51,17 +62,6 @@ def file_path(repo: Repository) -> Path:
 def text_file(template_path: Path) -> TextFile:
     """files/template.lua"""
     return TextFile(template_path)
-
-
-@pytest.fixture
-def files_dir() -> Path:
-    """
-    Returns the path to the ``tests/files`` directory.
-
-    Returns:
-        Path: A Path object pointing to the ``tests/files`` directory.
-    """
-    return Path(__file__).parent / "files"
 
 
 @pytest.fixture

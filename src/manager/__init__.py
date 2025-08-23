@@ -36,14 +36,6 @@ def set_basepath(path: Union[str, Path]) -> None:
     basepath = Path(path)
 
 
-current_subproject: Optional[str] = None
-
-
-def set_subproject(subproject: Optional[str]) -> None:
-    global current_subproject
-    current_subproject = subproject
-
-
 text_blocks = {
     "copyright_notice": f"""-- -----------------------------------------------------------------------------
 -- Copyright (C) 2022-{datetime.now().year} by Josef Friedrich <josef@friedrich.rocks>
@@ -1227,6 +1219,14 @@ class TeXSubproject(Subproject):
             return self._downstream_repo
 
 
+current_subproject: Optional[str] = None
+
+
+def set_subproject(subproject: Optional[str]) -> None:
+    global current_subproject
+    current_subproject = subproject
+
+
 class SubprojectContainer:
     __projects: dict[str, Subproject] = {}
 
@@ -1258,6 +1258,11 @@ class SubprojectContainer:
 
     def get(self, name: str) -> Subproject:
         return self.__projects[name.lower()]
+
+    @property
+    def current(self) -> Optional[Subproject]:
+        if current_subproject is not None:
+            return self.__projects[current_subproject]
 
     @property
     def names(self) -> list[str]:
@@ -1428,6 +1433,96 @@ def cli(
         set_subproject("luaotfload")
     elif luatex:
         set_subproject("luatex")
+
+
+class ExampleFile:
+    path: Path
+
+    orig_content: str
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.orig_content = path.read_text()
+
+    __orig_lines: Optional[list[str]] = None
+
+    @property
+    def orig_lines(self) -> list[str]:
+        if self.__orig_lines is None:
+            self.__orig_lines = self.orig_content.splitlines()
+        return self.__orig_lines
+
+    @property
+    def first_line(self) -> str:
+        return self.orig_lines[0]
+
+    __cleaned_lua_code: Optional[str] = None
+
+    @property
+    def cleaned_lua_code(self) -> str:
+        """Lua code without the shebang and the TeX markup."""
+        if self.__cleaned_lua_code is None:
+            cleaned: list[str] = []
+            for line in self.orig_lines:
+                if not line.startswith("--tex: ") and not line.startswith("#!"):
+                    cleaned.append(line)
+            self.__cleaned_lua_code = "\n".join(cleaned).strip()
+        return self.__cleaned_lua_code
+
+    __pure_lua_code: Optional[str] = None
+
+    @property
+    def pure_lua_code(self) -> str:
+        """Lua code without the shebang, the TeX markup and the utils import
+        (``require("utils")``)."""
+        if self.__pure_lua_code is None:
+            pure: list[str] = []
+            for line in self.cleaned_lua_code.splitlines():
+                if 'require("utils")' not in line:
+                    pure.append(line)
+            self.__pure_lua_code = "\n".join(pure).strip()
+        return self.__pure_lua_code
+
+    @property
+    def docstring(self) -> str:
+        """
+        Generates a Lua-formatted docstring for the `pure_lua_code` attribute.
+
+        Returns:
+            str: A string containing the Lua-formatted docstring, including example code
+            wrapped in Lua comment markers and a code block.
+        """
+        lines: list[str] = ["", "---__Example:__", "---", "---```lua"]
+        for line in self.pure_lua_code.splitlines():
+            lines.append("---" + line)
+        lines.append("---```")
+        lines.append("---")
+        return "\n".join(lines)
+
+    __tex_markup: Optional[str] = None
+
+    @property
+    def tex_markup(self) -> Optional[str]:
+        """Extracts lines marked with '--tex: ' from Lua code and separates them from the rest."""
+        if self.__tex_markup is None:
+            tex_markup: list[str] = []
+            for line in self.orig_content.splitlines():
+                if line.startswith("--tex: "):
+                    tex_markup.append(line[7:])
+            if len(tex_markup) > 0:
+                self.__tex_markup = "\n".join(tex_markup)
+        return self.__tex_markup
+
+    @property
+    def shebang(self) -> Optional[list[str]]:
+        """
+        Parse the first line to support a shebang syntax
+        """
+        # #! luatex --lua-only
+        # #! /usr/local/texlive/bin/x86_64-linux/luatex
+        if self.first_line.startswith("#!"):
+            first_line = self.first_line.replace("#!", "")
+            return shlex.split(first_line)
 
 
 @cli.command()
