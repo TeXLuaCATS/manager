@@ -253,19 +253,18 @@ class TestConvertTexToLua:
         )
 
 
-def rewrap(content: str) -> str:
-    file = TextFile(Path(mkdtemp()) / "tmp.lua")
-    file.write(content)
-    return file.rewrap()
-
-
 class TestRewrap:
+    def rewrap(self, content: str) -> str:
+        file = TextFile(Path(mkdtemp()) / "tmp.lua")
+        file.write(content)
+        return file.rewrap()
+
     def test_one_emty_comment_line(self) -> None:
-        assert rewrap("---") == "---"
+        assert self.rewrap("---") == "---"
 
     def test_with_code_block(self) -> None:
         assert (
-            rewrap(""""
+            self.rewrap(""""
 ---
 ---Creates and returns an unconnected IPv6 UDP object. Unconnected objects support the sendto.
 ---
@@ -317,7 +316,7 @@ function socket.udp6() end"""
 
     def test_unordered_list(self) -> None:
         assert (
-            rewrap(
+            self.rewrap(
                 """
 ---
 ---Append a node list to *TeX*'s “current list”.
@@ -356,7 +355,7 @@ function node.direct.write(d) end"""
 
     def test_multiline_unorderd_list(self) -> None:
         assert (
-            rewrap("""---
+            self.rewrap("""---
 ---The node library contains functions that facilitate dealing with (lists of) nodes and their values.
 ---They allow you to create, alter, copy, delete, and insert LuaTEX node objects, the core objects
 ---within the typesetter.
@@ -397,13 +396,19 @@ function node.direct.write(d) end"""
         )
 
     def test_urls(self) -> None:
-        assert (
-            rewrap("""---
----https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/f52b099f3e01d53dc03b315e1909245c3d5418d3/source/texk/web2c/luatexdir/lua/lnodelib.c#L2529-L2552
----https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/f52b099f3e01d53dc03b315e1909245c3d5418d3/source/texk/web2c/luatexdir/lua/lnodelib.c#L2529-L2552
----""")
-            == """---
+        example = """---
 ---https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/f52b099f3e01d53dc03b315e1909245c3d5418d3/source/texk/web2c/luatexdir/lua/lnodelib.c#L2529-L2552
 ---https://gitlab.lisn.upsaclay.fr/texlive/luatex/-/blob/f52b099f3e01d53dc03b315e1909245c3d5418d3/source/texk/web2c/luatexdir/lua/lnodelib.c#L2529-L2552
 ---"""
-        )
+        assert self.rewrap(example) == example
+
+    def test_enumerate(self) -> None:
+        example = """---
+---1. The next field returns the userdata object for the next node in a linked list of nodes, or nil,
+---   if there is no next node.
+---2. The other available fields depend on the id
+---3. The subtype is another number. It often gives further information about a node of a particular
+---   id, but it is most important when dealing with ‘whatsits’, because they are differentiated
+---   solely based on their subtype.
+---"""
+        assert self.rewrap(example) == example

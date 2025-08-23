@@ -635,7 +635,10 @@ class TextFile:
                     or line.startswith("---@")
                     or line.startswith("---|")
                     or line.startswith("---😱 [Types]")
+                    # enumeration 1. 2. 3. ...
+                    or re.match(r"^---\d+\. ", line)
                     or line.startswith("---* ")
+                    # second line of a unordered list
                     or re.match(r"^---\s\s*\w", line) is not None
                     or is_fenced_code_block
                 ):
