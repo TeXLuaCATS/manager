@@ -1479,7 +1479,7 @@ class ExampleFile:
 
     orig_content: str
 
-    run_luaonly: bool = False
+    run_luaonly: Optional[bool] = None
 
     print_docstrings: bool = False
 
@@ -1582,6 +1582,8 @@ class ExampleFile:
 
     @property
     def luaonly(self) -> bool:
+        if ExampleFile.run_luaonly is True:
+            return True
         if self.__luaonly is None:
             if self.shebang is not None and "--luaonly" in self.shebang:
                 self.__luaonly = True
@@ -1619,8 +1621,14 @@ class ExampleFile:
 
     def run(self, luaonly: bool = False) -> None:
         print(f"Run examples file {self.path}")
-        return
         args = self.shebang
+        luaonly = self.luaonly or luaonly
+
+        if not luaonly:
+            self.write_tex_file()
+
+        self.write_lua_file()
+
         if args is None or len(args) == 0:
             args = ["luatex"]
         if luaonly and "--luaonly" not in args:
