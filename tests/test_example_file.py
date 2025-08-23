@@ -1,6 +1,6 @@
 from pathlib import Path
 import pytest
-from manager import ExampleFile
+from manager import ExampleFile, Repository
 
 
 @pytest.fixture
@@ -108,5 +108,56 @@ def test_tex_markup(example_file: ExampleFile) -> None:
     assert example_file.tex_markup == "test"
 
 
+def test_tmp_lua() -> None:
+    assert "tmp.lua" in str(ExampleFile.tmp_lua())
+
+
+def test_tmp_tex() -> None:
+    assert "tmp.tex" in str(ExampleFile.tmp_tex())
+
+
+def test_file_to_run(example_file: ExampleFile) -> None:
+    assert "tmp.lua" in str(example_file.file_to_run)
+
+
 def test_shebang(example_file: ExampleFile) -> None:
     assert example_file.shebang == ["luatex", "--luaonly"]
+
+
+def test_luaonly(example_file: ExampleFile) -> None:
+    assert example_file.luaonly is True
+    example_file.luaonly = True
+    assert example_file.luaonly is True
+    example_file.luaonly = False
+    assert example_file.luaonly is False
+    example_file.shebang = ["luatex"]
+    assert example_file.luaonly is False
+    example_file.shebang = ["luatex", "--luaonly"]
+    assert example_file.luaonly is True
+
+
+def test_write_tex_file(example_file: ExampleFile, meta_repo: Repository) -> None:
+    example_file.write_tex_file()
+    assert (
+        meta_repo.get_text_file("tmp.tex").content
+        == "\\directlua{dofile('tmp.lua')}\ntest\\bye\n"
+    )
+
+
+def test_write_lua_file(example_file: ExampleFile, meta_repo: Repository) -> None:
+    example_file.write_lua_file()
+    assert (
+        meta_repo.get_text_file("tmp.lua").content
+        == """print('---start---')
+local assert = require("utils").assert
+
+callback.register("post_linebreak_filter", function(head)
+  for n, type, subtype in node.traverse(head.head) do
+    assert.is_type(n, "userdata")
+    assert.is_type(type, "number")
+    assert.is_type(subtype, "number")
+  end
+  return head
+end)
+print('---stop---')"""
+    )

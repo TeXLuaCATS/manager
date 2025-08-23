@@ -859,6 +859,9 @@ class Repository:
 
         return f"https://github.com/{self.github_owner_repo}/blob/main/{relpath}"
 
+    def get_text_file(self, relpath: Union[Path, str]) -> TextFile:
+        return TextFile(self.path / relpath)
+
     @property
     def github_owner_repo(self) -> str:
         # git@github.com:TeXLuaCATS/LuaMetaTeX.git
@@ -1502,7 +1505,7 @@ class ExampleFile:
     __tex_markup: Optional[str] = None
 
     @property
-    def tex_markup(self) -> Optional[str]:
+    def tex_markup(self) -> str:
         """Extracts lines marked with '--tex: ' from Lua code and separates them from the rest."""
         if self.__tex_markup is None:
             tex_markup: list[str] = []
@@ -1511,18 +1514,88 @@ class ExampleFile:
                     tex_markup.append(line[7:])
             if len(tex_markup) > 0:
                 self.__tex_markup = "\n".join(tex_markup)
+        if self.__tex_markup is None:
+            return ""
         return self.__tex_markup
+
+    __shebang: Optional[list[str]] = None
 
     @property
     def shebang(self) -> Optional[list[str]]:
         """
         Parse the first line to support a shebang syntax
         """
-        # #! luatex --lua-only
-        # #! /usr/local/texlive/bin/x86_64-linux/luatex
-        if self.first_line.startswith("#!"):
-            first_line = self.first_line.replace("#!", "")
-            return shlex.split(first_line)
+        if self.__shebang is None:
+            # #! luatex --lua-only
+            # #! /usr/local/texlive/bin/x86_64-linux/luatex
+            if self.first_line.startswith("#!"):
+                first_line = self.first_line.replace("#!", "")
+                self.__shebang = shlex.split(first_line)
+        return self.__shebang
+
+    @shebang.setter
+    def shebang(self, value: list[str]) -> None:
+        self.__luaonly = None
+        self.__shebang = value
+
+    __luaonly: Optional[bool] = None
+
+    @property
+    def luaonly(self) -> bool:
+        if self.__luaonly is None:
+            if self.shebang is not None and "--luaonly" in self.shebang:
+                self.__luaonly = True
+            else:
+                self.__luaonly = False
+        return self.__luaonly is True
+
+    @luaonly.setter
+    def luaonly(self, value: bool) -> None:
+        self.__luaonly = value
+
+    @staticmethod
+    def tmp_lua() -> Path:
+        return basepath / "tmp.lua"
+
+    @staticmethod
+    def tmp_tex() -> Path:
+        return basepath / "tmp.tex"
+
+    @property
+    def file_to_run(self) -> Path:
+        if self.luaonly:
+            return ExampleFile.tmp_lua()
+        return ExampleFile.tmp_tex()
+
+    def write_tex_file(self) -> None:
+        ExampleFile.tmp_tex().write_text(
+            "\\directlua{dofile('tmp.lua')}\n" + self.tex_markup + "\\bye\n"
+        )
+
+    def write_lua_file(self) -> None:
+        ExampleFile.tmp_lua().write_text(
+            "print('---start---')\n" + self.cleaned_lua_code + "\nprint('---stop---')"
+        )
+
+    def run(self, luaonly: bool = False) -> None:
+        args = self.shebang
+        if args is None or len(args) == 0:
+            args = ["luatex"]
+        if luaonly and "--luaonly" not in args:
+            args.append("--luaonly")
+        result = subprocess.run(
+            [*args, "--halt-on-error", str(self.file_to_run)],
+            capture_output=True,
+            text=True,
+            cwd=basepath,
+            timeout=5,
+        )
+        output = result.stdout
+        output = re.sub(r"^.*---start---", "", output, flags=re.DOTALL)
+        output = re.sub(r"---stop---.*$", "", output, flags=re.DOTALL)
+        print(output)
+        if result.returncode != 0:
+            sys.exit(1)
 
 
 @cli.command()
