@@ -702,6 +702,22 @@ class Folder:
         ):
             yield TextFile(path)
 
+    def list_path(
+        self, relpath: Optional[Union[str, Path]] = None, extension: str = "lua"
+    ) -> Generator[Path, Any, None]:
+        search_path: Path
+        if relpath is None:
+            search_path = self.path
+        else:
+            search_path = self.path / relpath
+        if search_path.is_file():
+            yield Path(search_path)
+            return
+        for path in sorted(
+            glob.glob(f"{search_path}/**/*.{extension}", recursive=True)
+        ):
+            yield Path(path)
+
     def __str__(self) -> str:
         return str(self.path)
 
@@ -985,6 +1001,12 @@ class Subproject:
         return Folder(self.base / "library")
 
     @property
+    def examples(self) -> Optional[Folder]:
+        path = self.base / "examples"
+        if path.is_dir():
+            return Folder(self.base / "examples")
+
+    @property
     def dist(self) -> Path:
         """The directory where the compiled Lua sources are temporarily stored
         for distribution, for example: ``dist/LuaTeX``.
@@ -1106,6 +1128,14 @@ class Subproject:
         downstream = self.downstream_repo
         if downstream is not None:
             downstream.sync_from_remote()
+
+    def run_examples(self, relpath: Optional[Union[str, Path]]) -> None:
+        examples = self.examples
+        if examples is None:
+            raise Exception(f"The subproject {self.name} has no examples folder")
+        for path in examples.list_path(relpath=relpath):
+            example = ExampleFile(path)
+            example.run()
 
     def format(self, rewrap: bool) -> None:
         def __format(folder: Folder, rewrap: bool):
@@ -1266,6 +1296,12 @@ class SubprojectContainer:
     def current(self) -> Optional[Subproject]:
         if current_subproject is not None:
             return self.__projects[current_subproject]
+
+    @property
+    def current_default(self) -> Subproject:
+        if current_subproject is not None:
+            return self.__projects[current_subproject]
+        return self.__projects["luatex"]
 
     @property
     def names(self) -> list[str]:
@@ -1443,6 +1479,10 @@ class ExampleFile:
 
     orig_content: str
 
+    run_luaonly: bool = False
+
+    print_docstrings: bool = False
+
     def __init__(self, path: Path) -> None:
         self.path = path
         self.orig_content = path.read_text()
@@ -1578,6 +1618,8 @@ class ExampleFile:
         )
 
     def run(self, luaonly: bool = False) -> None:
+        print(f"Run examples file {self.path}")
+        return
         args = self.shebang
         if args is None or len(args) == 0:
             args = ["luatex"]
@@ -1599,16 +1641,10 @@ class ExampleFile:
 
 
 @cli.command()
-@click.argument("relpath")
-@click.option(
-    "-p",
-    "--subproject",
-    help="Select the subproject.",
-    type=click.Choice(subprojects.names),
-    default="luatex",
-)
+@click.argument("relpath", required=False)
 @click.option(
     "-l",
+    "--run-luaonly",
     "--luaonly",
     help="Exectute the example in an Lua only environement without the TeX related libraries",
     is_flag=True,
@@ -1619,9 +1655,19 @@ class ExampleFile:
     is_flag=True,
 )
 def example(
-    relpath: str,
+    relpath: Optional[str] = None,
+    run_luaonly: bool = False,
+    print_docstring: bool = False,
+) -> None:
+    print(relpath)
+    ExampleFile.run_luaonly = run_luaonly
+    ExampleFile.print_docstrings = print_docstring
+    subprojects.current_default.run_examples(relpath)
+
+
+def example_old(
+    relpath: Optional[str] = None,
     luaonly: bool = False,
-    subproject: str = "luatex",
     print_docstring: bool = False,
 ) -> None:
     """Compile examples in the folder ./examples
@@ -1773,25 +1819,25 @@ def example(
         if result.returncode != 0:
             sys.exit(1)
 
-    src: Path
-    if relpath.startswith("examples"):
-        src = basepath / relpath
-    else:
-        src = basepath / "examples" / subproject / relpath
+    # src: Path
+    # if relpath.startswith("examples"):
+    #     src = basepath / relpath
+    # else:
+    #     src = basepath / "examples" / subproject / relpath
 
-    if not src.exists():
-        with_extension = Path(str(src) + ".lua")
-        if with_extension.exists():
-            src = with_extension
+    # if not src.exists():
+    #     with_extension = Path(str(src) + ".lua")
+    #     if with_extension.exists():
+    #         src = with_extension
 
-    if not src.exists():
-        raise Exception(f"The specified path doesn’t exist: {src}")
+    # if not src.exists():
+    #     raise Exception(f"The specified path doesn’t exist: {src}")
 
-    if src.is_dir():
-        for path in sorted(glob.glob(f"{src}/**/*.lua", recursive=True)):
-            _run_example(Path(path), luaonly=luaonly, print_docstring=print_docstring)
-    else:
-        _run_example(src, luaonly=luaonly, print_docstring=print_docstring)
+    # if src.is_dir():
+    #     for path in sorted(glob.glob(f"{src}/**/*.lua", recursive=True)):
+    #         _run_example(Path(path), luaonly=luaonly, print_docstring=print_docstring)
+    # else:
+    #     _run_example(src, luaonly=luaonly, print_docstring=print_docstring)
 
 
 @cli.command()
