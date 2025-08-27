@@ -713,6 +713,11 @@ class Folder:
         if search_path.is_file():
             yield Path(search_path)
             return
+
+        with_extension = Path(f"{search_path}.{extension}")
+        if with_extension.is_file():
+            yield with_extension
+            return
         for path in sorted(
             glob.glob(f"{search_path}/**/*.{extension}", recursive=True)
         ):
@@ -1542,6 +1547,12 @@ class ExampleFile:
         lines.append("---")
         return "\n".join(lines)
 
+    def copy_docstring_to_clipboard(self) -> None:
+        read, write = os.pipe()
+        os.write(write, self.docstring.encode(encoding="utf-8"))
+        os.close(write)
+        subprocess.check_call(["xclip", "-selection", "clipboard"], stdin=read)
+
     __tex_markup: Optional[str] = None
 
     @property
@@ -1646,6 +1657,7 @@ class ExampleFile:
 
         if ExampleFile.print_docstrings:
             print(self.docstring)
+            self.copy_docstring_to_clipboard()
         if result.returncode != 0:
             sys.exit(1)
 
@@ -1669,185 +1681,9 @@ def example(
     run_luaonly: bool = False,
     print_docstring: bool = False,
 ) -> None:
-    print(relpath)
     ExampleFile.run_luaonly = run_luaonly
     ExampleFile.print_docstrings = print_docstring
     subprojects.current_default.run_examples(relpath)
-
-
-def example_old(
-    relpath: Optional[str] = None,
-    luaonly: bool = False,
-    print_docstring: bool = False,
-) -> None:
-    """Compile examples in the folder ./examples
-
-    You can specify the relative path of a Lua file or of a TeX file."""
-
-    def _extract_tex_markup(lua_code: str) -> tuple[str, str]:
-        """Extracts lines marked with '--tex: ' from Lua code and separates them from the rest.
-
-        Args:
-            lua_code: The Lua code as a string, potentially containing lines starting with '--tex: '.
-
-        Returns:
-            tuple[str, str]: A tuple containing:
-                - The cleaned Lua code as a single string with '--tex: ' lines removed.
-                - The extracted TeX markup as a single string, with the '--tex: ' prefix stripped from each line.
-        """
-
-        tex_markup: list[str] = []
-        cleaned: list[str] = []
-        for line in lua_code.splitlines():
-            if line.startswith("--tex: "):
-                tex_markup.append(line[7:])
-            else:
-                cleaned.append(line)
-        return ("\n".join(cleaned), "\n".join(tex_markup))
-
-    def _clean(lua_code: str) -> str:
-        """Clean the source Lua example file. Remove the import from utils. Trim."""
-        cleaned = lua_code.splitlines()
-        if 'require("utils")' in cleaned[0]:
-            cleaned = cleaned[1:]
-        if cleaned[0] == "":
-            cleaned = cleaned[1:]
-        output = "\n".join(cleaned)
-        return output.strip()
-
-    def _extract_shebang(
-        lua_code: str,
-    ) -> tuple[str, list[str], Optional[bool]]:
-        # Parse the first line to support a shebang syntax
-        # #! luatex --lua-only
-        # #! /usr/local/texlive/bin/x86_64-linux/luatex
-        args: list[str] = []
-        luaonly: Optional[bool] = None
-        if lua_code.startswith("#!"):
-            lines = lua_code.splitlines()
-            first_line = lines[0]
-            first_line = first_line.replace("#!", "")
-            if "--luaonly" in first_line:
-                luaonly = True
-            args = shlex.split(first_line)
-            # Remove the shebang
-            lua_code = "\n".join(lines[1:])
-        return (lua_code, args, luaonly)
-
-    def _render_docstring(lua_code: str) -> str:
-        lines: list[str] = ["", "---__Example:__", "---", "---```lua"]
-        for line in lua_code.splitlines():
-            lines.append("---" + line)
-        lines.append("---```")
-        lines.append("---")
-        return "\n".join(lines)
-
-    def _write_tex_file(path: Path, additional_tex_markup: str) -> None:
-        tex_content: str = (
-            "\\directlua{dofile('tmp.lua')}\n" + additional_tex_markup + "\\bye\n"
-        )
-        logger.debug(tex_content)
-        path.write_text(tex_content)
-
-    def _copy_to_clipboard(content: str) -> None:
-        read, write = os.pipe()
-        os.write(write, content.encode(encoding="utf-8"))
-        os.close(write)
-        subprocess.check_call(["xclip", "-selection", "clipboard"], stdin=read)
-
-    def _run_example(
-        src: Path,
-        luaonly: bool = False,
-        print_docstring: bool = False,
-    ) -> None:
-        """Run and execute one example file"""
-        relpath: str = str(src).replace(str(basepath / "examples") + "/", "")
-        print(f"Example: {Color.green(relpath)}")
-
-        logger.debug(f"Example source: {src}")
-
-        # Lua require does not support absolute paths, so we are running all
-        # examples from this repos base path
-        dest_lua: Path = basepath / "tmp.lua"
-
-        src_code = src.read_text()
-
-        (
-            src_code,
-            args,
-            _luaonly,
-        ) = _extract_shebang(src_code)
-
-        if _luaonly is not None:
-            luaonly = True
-
-        src_code_cleaned = _clean(src_code)
-        src_code_cleaned, tex_markup = _extract_tex_markup(src_code_cleaned)
-
-        src_cleaned = basepath / "tmp_cleaned.lua"
-        src_cleaned.write_text(src_code_cleaned)
-
-        _run_pygmentize(src_cleaned)
-
-        docstring: str = _render_docstring(src_code_cleaned)
-        if print_docstring:
-            print(docstring)
-
-        _copy_to_clipboard(docstring)
-
-        dest_lua.write_text(
-            "print('---start---')\n" + src_code + "\nprint('---stop---')"
-        )
-
-        dest_tex: Optional[Path] = None
-
-        if not luaonly:
-            dest_tex = basepath / "tmp.tex"
-            _write_tex_file(dest_tex, tex_markup)
-
-        dest: Path
-        if dest_tex is None:
-            dest = dest_lua
-        else:
-            dest = dest_tex
-
-        if len(args) == 0:
-            args = ["luatex"]
-        if luaonly and "--luaonly" not in args:
-            args.append("--luaonly")
-        result = subprocess.run(
-            [*args, "--halt-on-error", str(dest)],
-            capture_output=True,
-            text=True,
-            cwd=basepath,
-            timeout=5,
-        )
-        output = result.stdout
-        output = re.sub(r"^.*---start---", "", output, flags=re.DOTALL)
-        output = re.sub(r"---stop---.*$", "", output, flags=re.DOTALL)
-        print(output)
-        if result.returncode != 0:
-            sys.exit(1)
-
-    # src: Path
-    # if relpath.startswith("examples"):
-    #     src = basepath / relpath
-    # else:
-    #     src = basepath / "examples" / subproject / relpath
-
-    # if not src.exists():
-    #     with_extension = Path(str(src) + ".lua")
-    #     if with_extension.exists():
-    #         src = with_extension
-
-    # if not src.exists():
-    #     raise Exception(f"The specified path doesn’t exist: {src}")
-
-    # if src.is_dir():
-    #     for path in sorted(glob.glob(f"{src}/**/*.lua", recursive=True)):
-    #         _run_example(Path(path), luaonly=luaonly, print_docstring=print_docstring)
-    # else:
-    #     _run_example(src, luaonly=luaonly, print_docstring=print_docstring)
 
 
 @cli.command()
