@@ -1620,7 +1620,7 @@ class ExampleFile:
         )
 
     def run(self, luaonly: bool = False) -> None:
-        print(f"Run examples file {self.path}")
+        print(f"Run example file {Color.green(self.path)}")
         args = self.shebang
         luaonly = self.luaonly or luaonly
 
@@ -1636,14 +1636,16 @@ class ExampleFile:
         result = subprocess.run(
             [*args, "--halt-on-error", str(self.file_to_run)],
             capture_output=True,
-            text=True,
             cwd=basepath,
-            timeout=5,
+            timeout=30,
         )
-        output = result.stdout
+        output = result.stdout.decode("utf-8", errors="ignore")
         output = re.sub(r"^.*---start---", "", output, flags=re.DOTALL)
         output = re.sub(r"---stop---.*$", "", output, flags=re.DOTALL)
         print(output)
+
+        if ExampleFile.print_docstrings:
+            print(self.docstring)
         if result.returncode != 0:
             sys.exit(1)
 
