@@ -941,8 +941,6 @@ class Repository:
         shutil.copytree(self.path / subdir, dest, dirs_exist_ok=True)
 
     def sync_submodules(self) -> None:
-        self.__check_call()
-
         def submodule(*args: str) -> None:
             self.__check_call("git", "submodule", *args)
 
