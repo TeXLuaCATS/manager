@@ -1514,8 +1514,9 @@ class ExampleFile:
         return self.__orig_lines
 
     @property
-    def first_line(self) -> str:
-        return self.orig_lines[0]
+    def first_line(self) -> Optional[str]:
+        if len(self.orig_lines) > 0:
+            return self.orig_lines[0]
 
     __cleaned_lua_code: Optional[str] = None
 
@@ -1592,7 +1593,7 @@ class ExampleFile:
         if self.__shebang is None:
             # #! luatex --lua-only
             # #! /usr/local/texlive/bin/x86_64-linux/luatex
-            if self.first_line.startswith("#!"):
+            if self.first_line and self.first_line.startswith("#!"):
                 first_line = self.first_line.replace("#!", "")
                 self.__shebang = shlex.split(first_line)
         return self.__shebang
