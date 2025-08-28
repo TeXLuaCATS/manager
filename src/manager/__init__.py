@@ -940,6 +940,21 @@ class Repository:
             shutil.rmtree(dest)
         shutil.copytree(self.path / subdir, dest, dirs_exist_ok=True)
 
+    def sync_submodules(self) -> None:
+        self.__check_call()
+
+        def submodule(*args: str) -> None:
+            self.__check_call("git", "submodule", *args)
+
+        def foreach(*args: str) -> None:
+            submodule("foreach", "--recursive", "git", *args)
+
+        # submodule("update", "--init", "--recursive", "--remote")
+        foreach("clean", "-xfd")
+        foreach("reset", "--hard")
+        foreach("checkout", "main")
+        foreach("pull", "origin", "main")
+
     def sync_from_remote(self, branch: str = "main") -> None:
         """
         Synchronizes the local repository with the remote repository by
@@ -1934,12 +1949,13 @@ def rewrap(path: str) -> None:
 
 
 @cli.command()
-def submodule() -> None:
+def submodules() -> None:
     """Update all submodules. Synchronizes the main and the downstream
     repository with the remote repositories by resetting the local
     repositories and pulling down from the remote."""
-    for subproject in subprojects:
-        subproject.sync_from_remote()
+    parent_repo.sync_submodules()
+    # for subproject in subprojects:
+    #     subproject.sync_from_remote()
 
 
 def main() -> None:
