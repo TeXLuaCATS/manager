@@ -1297,6 +1297,27 @@ class TeXSubproject(Subproject):
         self.check_call("lualatex", "--shell-escape", "README.tex")
 
 
+    def make_ctan_bundle(self) -> None:
+        self.distribute(False)
+        self.compile_tex_doc()
+
+        jobname = f"{self.lowercase_name}-type-definitions"
+
+        folder = self.dist / jobname
+        shutil.rmtree(folder)
+        folder.mkdir(exist_ok=True, parents=True)
+
+        assert self.readme_tex
+
+        shutil.copyfile(self.readme_tex, folder / f"{jobname}.tex")
+
+        assert self.readme_pdf
+        shutil.copyfile(self.readme_pdf, folder / f"{jobname}.pdf")
+
+        self.check_call("tar", "cvfz", )
+        # tar cvfz $(jobname).tar.gz $(jobname)
+        # rm -rf $(jobname)
+
 current_subproject: Optional[str] = None
 
 
