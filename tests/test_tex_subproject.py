@@ -19,3 +19,9 @@ def test_readme_tex(tex_subproject: TeXSubproject, meta_repo: Repository) -> Non
         str(tex_subproject.readme_tex)
         == "/tmp/TeXLuaCATS_meta/TeXLuaCATS/LuaTeX/README.tex"
     )
+
+
+def test_compile_tex_doc(tex_subproject: TeXSubproject, meta_repo: Repository) -> None:
+    tex_subproject.compile_tex_doc()
+    assert tex_subproject.readme_pdf
+    assert tex_subproject.readme_pdf.exists()

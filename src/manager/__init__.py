@@ -1282,17 +1282,19 @@ class TeXSubproject(Subproject):
         if path.exists():
             return path
 
+    @property
+    def readme_pdf(self) -> Optional[Path]:
+        path = self.base / "README.pdf"
+        if path.exists():
+            return path
+
     def compile_tex_doc(self) -> None:
         if not self.readme_tex:
             return
-        readme = str(self.readme_tex)
-        self.check_call("lualatex", "--shell-escape", readme)
-        #     lualatex --shell-escape $(jobname)-doc.tex
-        #     makeindex -s gglo.ist -o $(jobname)-doc.gls $(jobname)-doc.glo
-        #     makeindex -s gind.ist -o $(jobname)-doc.ind $(jobname)-doc.idx
-        #     lualatex --shell-escape $(jobname)-doc.tex
-        #     mkdir -p $(texmf)/doc
-        #     cp $(jobname)-doc.pdf $(texmf)/doc/$(jobname).pdf
+        self.check_call("lualatex", "--shell-escape", "README.tex")
+        self.check_call("makeindex", "-s", "gglo.ist", "-o", "README.gls", "README.glo")
+        self.check_call("makeindex", "-s", "gind.ist", "-o", "README.ind", "README.idx")
+        self.check_call("lualatex", "--shell-escape", "README.tex")
 
 
 current_subproject: Optional[str] = None
