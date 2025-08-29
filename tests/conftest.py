@@ -1,6 +1,6 @@
 from pathlib import Path
 import shutil
-from typing import Callable, Union
+from typing import Callable, Union, cast
 
 import pytest
 
@@ -8,6 +8,7 @@ from manager import (
     Folder,
     Subproject,
     Repository,
+    TeXSubproject,
     TextFile,
     basepath,
     set_basepath,
@@ -96,6 +97,11 @@ def TmpTextFile(copy_to_tmp: Callable[[str | Path], Path]) -> Callable[[str], Te
 @pytest.fixture
 def subproject() -> Subproject:
     return subprojects.get("luatex")
+
+
+@pytest.fixture
+def tex_subproject() -> TeXSubproject:
+    return cast(TeXSubproject, subprojects.get("luatex"))
 
 
 @pytest.fixture

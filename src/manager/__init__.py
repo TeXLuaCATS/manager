@@ -780,7 +780,7 @@ class Folder:
 class Repository:
     path: Path
 
-    def __init__(self, path: Union[Path, str]):
+    def __init__(self, path: Union[Path, str]) -> None:
         self.path = Path(path)
 
     @staticmethod
@@ -810,14 +810,14 @@ class Repository:
             )
         return Repository(dest)
 
-    def __check_call(self, *args: str) -> int:
+    def check_call(self, *args: str) -> int:
         return subprocess.check_call(args, cwd=self.path)
 
-    def __check_output(self, *args: str) -> str:
+    def check_output(self, *args: str) -> str:
         return subprocess.check_output(args, encoding="utf-8", cwd=self.path).strip()
 
     def __checkout(self, branch: str = "main") -> None:
-        self.__check_call("git", "checkout", branch)
+        self.check_call("git", "checkout", branch)
 
     def checkout_clean(self, branch: str = "main") -> None:
         self.__add()
@@ -828,16 +828,16 @@ class Repository:
         self.__pull(branch)
 
     def __add(self) -> None:
-        self.__check_call("git", "add", "-A")
+        self.check_call("git", "add", "-A")
 
     def __reset(self) -> None:
-        self.__check_call("git", "reset", "--hard", "HEAD")
+        self.check_call("git", "reset", "--hard", "HEAD")
 
     def __pull(self, branch: str = "main") -> None:
-        self.__check_call("git", "pull", "origin", branch)
+        self.check_call("git", "pull", "origin", branch)
 
     def __push(self, branch: str = "main") -> None:
-        self.__check_call("git", "push", "-u", "origin", branch)
+        self.check_call("git", "push", "-u", "origin", branch)
 
     def __commit(self, message: str) -> bool:
         result = subprocess.run(["git", "commit", "-m", message], cwd=self.path)
@@ -849,7 +849,7 @@ class Repository:
     def basepath(self) -> Path:
         if not self.__basepath:
             self.__basepath = Path(
-                self.__check_output("git", "rev-parse", "--show-toplevel")
+                self.check_output("git", "rev-parse", "--show-toplevel")
             )
         return self.__basepath
 
@@ -903,14 +903,14 @@ class Repository:
         Returns:
             bool: True if the working directory is clean (no changes since last commit), False otherwise.
         """
-        return self.__check_output("git", "diff", "HEAD") == ""
+        return self.check_output("git", "diff", "HEAD") == ""
 
     __latest_commitid: Optional[str] = None
 
     @property
     def latest_commitid(self) -> str:
         if not self.__latest_commitid:
-            self.__latest_commitid = self.__check_output("git", "rev-parse", "HEAD")
+            self.__latest_commitid = self.check_output("git", "rev-parse", "HEAD")
         return self.__latest_commitid
 
     @property
@@ -925,11 +925,11 @@ class Repository:
     @property
     def remote(self) -> str:
         if not self.__remote:
-            self.__remote = self.__check_output("git", "remote", "get-url", "origin")
+            self.__remote = self.check_output("git", "remote", "get-url", "origin")
         return self.__remote
 
     def clean(self) -> None:
-        self.__check_call("git", "clean", "-dfx")
+        self.check_call("git", "clean", "-dfx")
 
     def copy_subdir(
         self, subdir: str | Path, dest: str | Path, delete_dest: bool = True
@@ -942,13 +942,14 @@ class Repository:
 
     def sync_submodules(self) -> None:
         def submodule(*args: str) -> None:
-            self.__check_call("git", "submodule", *args)
+            self.check_call("git", "submodule", *args)
 
         def foreach(*args: str) -> None:
             submodule("foreach", "--recursive", "git", *args)
 
         # submodule("update", "--init", "--recursive", "--remote")
-        foreach("clean", "-xfd")
+        # deletes .venv folder
+        # foreach("clean", "-xfd")
         foreach("reset", "--hard")
         foreach("checkout", "main")
         foreach("pull", "origin", "main")
@@ -1080,6 +1081,12 @@ class Subproject:
         if not path.exists():
             path.mkdir(parents=True)
         return Folder(path)
+
+    def check_call(self, *args: str) -> int:
+        return self.repo.check_call(*args)
+
+    def check_output(self, *args: str) -> str:
+        return self.repo.check_output(*args)
 
     def get(self, relpath: Union[str, Path]) -> TextFile:
         """
@@ -1268,6 +1275,24 @@ class TeXSubproject(Subproject):
             )
         if self._downstream_repo.path.exists():
             return self._downstream_repo
+
+    @property
+    def readme_tex(self) -> Optional[Path]:
+        path = self.base / "README.tex"
+        if path.exists():
+            return path
+
+    def compile_tex_doc(self) -> None:
+        if not self.readme_tex:
+            return
+        readme = str(self.readme_tex)
+        self.check_call("lualatex", "--shell-escape", readme)
+        #     lualatex --shell-escape $(jobname)-doc.tex
+        #     makeindex -s gglo.ist -o $(jobname)-doc.gls $(jobname)-doc.glo
+        #     makeindex -s gind.ist -o $(jobname)-doc.ind $(jobname)-doc.idx
+        #     lualatex --shell-escape $(jobname)-doc.tex
+        #     mkdir -p $(texmf)/doc
+        #     cp $(jobname)-doc.pdf $(texmf)/doc/$(jobname).pdf
 
 
 current_subproject: Optional[str] = None
@@ -1659,9 +1684,11 @@ class ExampleFile:
 
     def write_tex_file(self) -> None:
         ExampleFile.tmp_tex().write_text(
-            self.tex_markup_before  + "\n"
+            self.tex_markup_before
+            + "\n"
             + "\\directlua{dofile('tmp.lua')}\n"
-            + self.tex_markup_after + "\n"
+            + self.tex_markup_after
+            + "\n"
             + "\\bye\n"
         )
 
