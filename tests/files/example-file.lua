@@ -2,7 +2,8 @@
 
 local assert = require("utils").assert
 
---tex: test
+--tex: tex
+--tex-before: before
 callback.register("post_linebreak_filter", function(head)
   for n, type, subtype in node.traverse(head.head) do
     assert.is_type(n, "userdata")
@@ -11,3 +12,4 @@ callback.register("post_linebreak_filter", function(head)
   end
   return head
 end)
+--tex-after: after

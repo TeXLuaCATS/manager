@@ -19,7 +19,8 @@ def test_orig_content(example_file: ExampleFile) -> None:
 
 local assert = require("utils").assert
 
---tex: test
+--tex: tex
+--tex-before: before
 callback.register("post_linebreak_filter", function(head)
   for n, type, subtype in node.traverse(head.head) do
     assert.is_type(n, "userdata")
@@ -28,6 +29,7 @@ callback.register("post_linebreak_filter", function(head)
   end
   return head
 end)
+--tex-after: after
 """
     )
 
@@ -38,7 +40,8 @@ def test_orig_lines(example_file: ExampleFile) -> None:
         "",
         'local assert = require("utils").assert',
         "",
-        "--tex: test",
+        "--tex: tex",
+        "--tex-before: before",
         'callback.register("post_linebreak_filter", function(head)',
         "  for n, type, subtype in node.traverse(head.head) do",
         '    assert.is_type(n, "userdata")',
@@ -47,6 +50,7 @@ def test_orig_lines(example_file: ExampleFile) -> None:
         "  end",
         "  return head",
         "end)",
+        "--tex-after: after",
     ]
 
 
@@ -104,8 +108,8 @@ def test_docstring(example_file: ExampleFile) -> None:
     )
 
 
-def test_tex_markup(example_file: ExampleFile) -> None:
-    assert example_file.tex_markup == "test"
+def test_tex_markup_before(example_file: ExampleFile) -> None:
+    assert example_file.tex_markup_before == "tex\nbefore"
 
 
 def test_tmp_lua() -> None:
@@ -140,7 +144,12 @@ def test_write_tex_file(example_file: ExampleFile, meta_repo: Repository) -> Non
     example_file.write_tex_file()
     assert (
         meta_repo.get_text_file("tmp.tex").content
-        == "\\directlua{dofile('tmp.lua')}\ntest\\bye\n"
+        == """tex
+before
+\\directlua{dofile('tmp.lua')}
+after
+\\bye
+"""
     )
 
 

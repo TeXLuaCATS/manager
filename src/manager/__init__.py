@@ -1526,7 +1526,12 @@ class ExampleFile:
         if self.__cleaned_lua_code is None:
             cleaned: list[str] = []
             for line in self.orig_lines:
-                if not line.startswith("--tex: ") and not line.startswith("#!"):
+                if (
+                    not line.startswith("--tex: ")
+                    and not line.startswith("--tex-after: ")
+                    and not line.startswith("--tex-before: ")
+                    and not line.startswith("#!")
+                ):
                     cleaned.append(line)
             self.__cleaned_lua_code = "\n".join(cleaned).strip()
         return self.__cleaned_lua_code
@@ -1567,21 +1572,39 @@ class ExampleFile:
         os.close(write)
         subprocess.check_call(["xclip", "-selection", "clipboard"], stdin=read)
 
-    __tex_markup: Optional[str] = None
+    __tex_markup_before: Optional[str] = None
 
     @property
-    def tex_markup(self) -> str:
-        """Extracts lines marked with '--tex: ' from Lua code and separates them from the rest."""
-        if self.__tex_markup is None:
+    def tex_markup_before(self) -> str:
+        """Extracts lines marked with '--tex-before: ' from Lua code and separates them from the rest."""
+        if self.__tex_markup_before is None:
             tex_markup: list[str] = []
             for line in self.orig_content.splitlines():
                 if line.startswith("--tex: "):
                     tex_markup.append(line[7:])
+                if line.startswith("--tex-before: "):
+                    tex_markup.append(line[14:])
             if len(tex_markup) > 0:
-                self.__tex_markup = "\n".join(tex_markup)
-        if self.__tex_markup is None:
+                self.__tex_markup_before = "\n".join(tex_markup)
+        if self.__tex_markup_before is None:
             return ""
-        return self.__tex_markup
+        return self.__tex_markup_before
+
+    __tex_markup_after: Optional[str] = None
+
+    @property
+    def tex_markup_after(self) -> str:
+        """Extracts lines marked with '--tex-after: ' from Lua code and separates them from the rest."""
+        if self.__tex_markup_after is None:
+            tex_markup: list[str] = []
+            for line in self.orig_content.splitlines():
+                if line.startswith("--tex-after: "):
+                    tex_markup.append(line[13:])
+            if len(tex_markup) > 0:
+                self.__tex_markup_after = "\n".join(tex_markup)
+        if self.__tex_markup_after is None:
+            return ""
+        return self.__tex_markup_after
 
     __shebang: Optional[list[str]] = None
 
@@ -1636,7 +1659,10 @@ class ExampleFile:
 
     def write_tex_file(self) -> None:
         ExampleFile.tmp_tex().write_text(
-            "\\directlua{dofile('tmp.lua')}\n" + self.tex_markup + "\\bye\n"
+            self.tex_markup_before  + "\n"
+            + "\\directlua{dofile('tmp.lua')}\n"
+            + self.tex_markup_after + "\n"
+            + "\\bye\n"
         )
 
     def write_lua_file(self) -> None:
