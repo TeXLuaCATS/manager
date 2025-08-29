@@ -112,6 +112,10 @@ def test_tex_markup_before(example_file: ExampleFile) -> None:
     assert example_file.tex_markup_before == "tex\nbefore"
 
 
+def test_tex_markup_after(example_file: ExampleFile) -> None:
+    assert example_file.tex_markup_after == "after"
+
+
 def test_tmp_lua() -> None:
     assert "tmp.lua" in str(ExampleFile.tmp_lua())
 
