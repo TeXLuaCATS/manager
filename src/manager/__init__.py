@@ -1260,6 +1260,12 @@ class Subproject:
         _copy_directory(dest, self.repo.path)
         self.repo.sync_to_remote("Generate docs", "gh-pages")
 
+    def compile_tex_doc(self) -> None:
+        pass
+
+    def make_ctan_bundle(self) -> None:
+        pass
+
 
 @dataclass
 class TeXSubproject(Subproject):
@@ -1296,27 +1302,22 @@ class TeXSubproject(Subproject):
         self.check_call("makeindex", "-s", "gind.ist", "-o", "README.ind", "README.idx")
         self.check_call("lualatex", "--shell-escape", "README.tex")
 
-
     def make_ctan_bundle(self) -> None:
         self.distribute(False)
         self.compile_tex_doc()
-
         jobname = f"{self.lowercase_name}-type-definitions"
-
         folder = self.dist / jobname
-        shutil.rmtree(folder)
+        shutil.rmtree(folder, ignore_errors=True)
         folder.mkdir(exist_ok=True, parents=True)
-
         assert self.readme_tex
-
-        shutil.copyfile(self.readme_tex, folder / f"{jobname}.tex")
-
+        shutil.copyfile(self.readme_tex, folder / f"{jobname}-doc.tex")
         assert self.readme_pdf
-        shutil.copyfile(self.readme_pdf, folder / f"{jobname}.pdf")
+        shutil.copyfile(self.readme_pdf, folder / f"{jobname}-doc.pdf")
+        shutil.copyfile(self.merged_defintions.path, folder / f"{jobname}.lua")
+        subprocess.check_call(
+            ["tar", "cvfz", f"{jobname}.tar.gz", jobname], cwd=self.dist
+        )
 
-        self.check_call("tar", "cvfz", )
-        # tar cvfz $(jobname).tar.gz $(jobname)
-        # rm -rf $(jobname)
 
 current_subproject: Optional[str] = None
 
@@ -1538,6 +1539,13 @@ def cli(
         set_subproject("luaotfload")
     elif luatex:
         set_subproject("luatex")
+
+
+@cli.command()
+def ctan() -> None:
+    """Generate a tar.gz file for the CTAN upload."""
+    for subproject in subprojects:
+        subproject.make_ctan_bundle()
 
 
 class ExampleFile:
