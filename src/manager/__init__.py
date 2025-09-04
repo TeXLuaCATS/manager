@@ -784,7 +784,9 @@ class Repository:
         self.path = Path(path)
 
     @staticmethod
-    def clone(remote: str, dest: Union[str, Path]) -> "Repository":
+    def clone(
+        remote: str, dest: Union[str, Path], ignore_errors: bool = False
+    ) -> "Repository":
         """
         Clone a remote Git repository to a specified destination.
         The repository will only be cloned if ``dest`` does not contain a ``.git`` folder.
@@ -805,9 +807,20 @@ class Repository:
         if isinstance(dest, str):
             dest = Path(dest)
         if not (dest / ".git").is_dir():
-            subprocess.check_call(
-                ["git", "clone", "--recurse-submodules", "-j4", remote, dest]
-            )
+            args: list[Union[str, Path]] = [
+                "git",
+                "clone",h
+                "--recurse-submodules",
+                "-j4",
+                remote,
+                dest,
+            ]
+            if ignore_errors:
+                process = subprocess.Popen(args)
+                process.communicate()
+            else:
+                subprocess.check_call(args)
+
         return Repository(dest)
 
     def check_call(self, *args: str) -> int:
@@ -2059,7 +2072,8 @@ def submodules() -> None:
 
 
 @cli.command()
-def update_lls_addons() -> None:
+@click.option("--clean", is_flag=True, help="Remove a already cloned lls addon repo.")
+def update_lls_addons(clean: bool) -> None:
     """
     Create a branch for a pull request in the repo git@github.com:Josef-Friedrich/LLS-Addons.git
     to update submodules in the repo
@@ -2067,11 +2081,15 @@ def update_lls_addons() -> None:
     """
 
     base = Path("/tmp/lls_addons")
-    repo = Repository.clone("git@github.com:Josef-Friedrich/LLS-Addons.git", base)
+
+    if clean and base.exists():
+        shutil.rmtree(base, ignore_errors=True)
+    repo = Repository.clone(
+        "git@github.com:Josef-Friedrich/LLS-Addons.git", base, ignore_errors=True
+    )
     repo.fetch_upstream("git@github.com:LuaLS/LLS-Addons.git")
     today = datetime.now().strftime("%Y-%m-%d")
     update_branch = f"update_{today}"
-
     repo.checkout(update_branch)
 
     for addon in [
@@ -2096,16 +2114,10 @@ def update_lls_addons() -> None:
     # stylua "${ADDON_ROOT}/library"
     # }
 
-    # for ADDON in $ADDONS; do
-    # _update $ADDON
-    # done
-
-    # cd "${ROOT}"
-
-    # git add -Av
-    # git commit -m "Update TeX related submodules to the latest version"
-
-    # git push -u origin "$UPDATE_BRANCH"
+    repo.sync_to_remote(
+        message="Update TeX related submodules to the latest version",
+        branch=update_branch,
+    )
 
 
 def main() -> None:
