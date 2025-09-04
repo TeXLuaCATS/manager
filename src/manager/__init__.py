@@ -809,7 +809,7 @@ class Repository:
         if not (dest / ".git").is_dir():
             args: list[Union[str, Path]] = [
                 "git",
-                "clone",h
+                "clone",
                 "--recurse-submodules",
                 "-j4",
                 remote,
