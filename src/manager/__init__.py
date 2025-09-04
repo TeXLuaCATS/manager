@@ -1010,6 +1010,7 @@ class Repository:
         message: str,
         branch: str = "main",
     ) -> None:
+        self.__pull(branch)
         self.__add()
         if self.__commit(message):
             self.__push(branch=branch)
@@ -2111,8 +2112,7 @@ def update_lls_addons(clean: bool) -> None:
 
         addon_repo = Repository(addon_root)
         addon_repo.sync_from_remote()
-    # stylua "${ADDON_ROOT}/library"
-    # }
+        _run_stylua(addon_root)
 
     repo.sync_to_remote(
         message="Update TeX related submodules to the latest version",
