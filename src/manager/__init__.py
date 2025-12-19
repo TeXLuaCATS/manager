@@ -2001,9 +2001,9 @@ def merge() -> None:
 @cli.command()
 @click.option("--no-sync", is_flag=True, help="Do not commit and sync to the remote.")
 def dist(no_sync: bool) -> None:
-    sync_to_remote = not no_sync
     """Copy the library to ``dist`` folder, remove the navigation table, clean
     the docstrings and synchronize to the remote repository"""
+    sync_to_remote = not no_sync
     for subproject in subprojects:
         subproject.distribute(sync_to_remote)
     # vscode extension
