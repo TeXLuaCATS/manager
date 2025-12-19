@@ -849,7 +849,8 @@ class Repository:
         self.check_call("git", "reset", "--hard", "HEAD")
 
     def __pull(self, branch: str = "main") -> None:
-        self.check_call("git", "pull", "origin", branch)
+        if self.exists_remote_branch(branch):
+            self.check_call("git", "pull", "origin", branch)
 
     def __push(self, branch: str = "main") -> None:
         self.check_call("git", "push", "-u", "origin", branch)
@@ -957,6 +958,20 @@ class Repository:
 
     def exists_branch(self, branch: str) -> bool:
         return branch in self.check_output("git", "branch")
+
+    def exists_remote_branch(self, branch: str) -> bool:
+        try:
+            self.check_call(
+                "git",
+                "ls-remote",
+                "--exit-code",
+                "--heads",
+                "origin",
+                f"refs/heads/{branch}",
+            )
+        except Exception:
+            return False
+        return True
 
     def exists_remote(self, remote: str) -> bool:
         return remote in self.check_output("git", "remote")
