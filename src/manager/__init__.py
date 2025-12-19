@@ -1810,6 +1810,7 @@ def example(
     run_luaonly: bool = False,
     print_docstring: bool = False,
 ) -> None:
+    """Execute a single example file or a folder containing examples files."""
     ExampleFile.run_luaonly = run_luaonly
     ExampleFile.print_docstrings = print_docstring
     subprojects.current_default.run_examples(relpath)
@@ -2032,7 +2033,7 @@ def merge() -> None:
 @cli.command()
 @click.option("--no-sync", is_flag=True, help="Do not commit and sync to the remote.")
 def dist(no_sync: bool) -> None:
-    """Copy the library to ``dist`` folder, remove the navigation table, clean
+    """Copy the ``library`` to the ``dist`` folder, remove the navigation table, clean
     the docstrings and synchronize to the remote repository"""
     sync_to_remote = not no_sync
     for subproject in subprojects:
