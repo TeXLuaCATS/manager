@@ -784,7 +784,9 @@ class Repository:
         self.path = Path(path)
 
     @staticmethod
-    def clone(remote: str, dest: Union[str, Path]) -> "Repository":
+    def clone(
+        remote: str, dest: Union[str, Path], ignore_errors: bool = False
+    ) -> "Repository":
         """
         Clone a remote Git repository to a specified destination.
         The repository will only be cloned if ``dest`` does not contain a ``.git`` folder.
@@ -805,9 +807,20 @@ class Repository:
         if isinstance(dest, str):
             dest = Path(dest)
         if not (dest / ".git").is_dir():
-            subprocess.check_call(
-                ["git", "clone", "--recurse-submodules", "-j4", remote, dest]
-            )
+            args: list[Union[str, Path]] = [
+                "git",
+                "clone",
+                "--recurse-submodules",
+                "-j4",
+                remote,
+                dest,
+            ]
+            if ignore_errors:
+                process = subprocess.Popen(args)
+                process.communicate()
+            else:
+                subprocess.check_call(args)
+
         return Repository(dest)
 
     def check_call(self, *args: str) -> int:
@@ -816,13 +829,15 @@ class Repository:
     def check_output(self, *args: str) -> str:
         return subprocess.check_output(args, encoding="utf-8", cwd=self.path).strip()
 
-    def __checkout(self, branch: str = "main") -> None:
+    def checkout(self, branch: str = "main") -> None:
+        if not self.exists_branch(branch):
+            self.check_call("git", "branch", branch)
         self.check_call("git", "checkout", branch)
 
     def checkout_clean(self, branch: str = "main") -> None:
         self.__add()
         self.__reset()
-        self.__checkout(branch)
+        self.checkout(branch)
         self.__add()
         self.__reset()
         self.__pull(branch)
@@ -940,6 +955,21 @@ class Repository:
             shutil.rmtree(dest)
         shutil.copytree(self.path / subdir, dest, dirs_exist_ok=True)
 
+    def exists_branch(self, branch: str) -> bool:
+        return branch in self.check_output("git", "branch")
+
+    def exists_remote(self, remote: str) -> bool:
+        return remote in self.check_output("git", "remote")
+
+    def fetch_upstream(self, upstream: str) -> None:
+        # https://stackoverflow.com/a/7244456
+        if not self.exists_remote("upstream"):
+            self.check_call("git", "remote", "add", "upstream", upstream)
+        self.check_call("git", "fetch", "upstream")
+        self.check_call("git", "checkout", "main")
+        self.check_call("git", "rebase", "upstream/main")
+        self.check_call("git", "push", "-u", "origin", "main")
+
     def sync_submodules(self) -> None:
         def submodule(*args: str) -> None:
             self.check_call("git", "submodule", *args)
@@ -970,7 +1000,7 @@ class Repository:
             Color.green(self.path),
             Color.green(self.remote),
         )
-        self.__checkout(branch)
+        self.checkout(branch)
         self.__add()
         self.__reset()
         self.__pull(branch)
@@ -980,6 +1010,7 @@ class Repository:
         message: str,
         branch: str = "main",
     ) -> None:
+        self.__pull(branch)
         self.__add()
         if self.__commit(message):
             self.__push(branch=branch)
@@ -2039,6 +2070,54 @@ def submodules() -> None:
     parent_repo.sync_submodules()
     # for subproject in subprojects:
     #     subproject.sync_from_remote()
+
+
+@cli.command()
+@click.option("--clean", is_flag=True, help="Remove a already cloned lls addon repo.")
+def update_lls_addons(clean: bool) -> None:
+    """
+    Create a branch for a pull request in the repo git@github.com:Josef-Friedrich/LLS-Addons.git
+    to update submodules in the repo
+    git@github.com:LuaLS/LLS-Addons.git
+    """
+
+    base = Path("/tmp/lls_addons")
+
+    if clean and base.exists():
+        shutil.rmtree(base, ignore_errors=True)
+    repo = Repository.clone(
+        "git@github.com:Josef-Friedrich/LLS-Addons.git", base, ignore_errors=True
+    )
+    repo.fetch_upstream("git@github.com:LuaLS/LLS-Addons.git")
+    today = datetime.now().strftime("%Y-%m-%d")
+    update_branch = f"update_{today}"
+    repo.checkout(update_branch)
+
+    for addon in [
+        "lmathx",
+        "lpeg",
+        "luasocket",
+        "luazip",
+        "lzlib",
+        "md5",
+        "slnunicode",
+        "tex-lualatex",
+        "tex-lualibs",
+        "tex-luametatex",
+        "tex-luatex",
+    ]:
+        pass
+
+        addon_root = base / "addons" / addon / "module"
+
+        addon_repo = Repository(addon_root)
+        addon_repo.sync_from_remote()
+        _run_stylua(addon_root)
+
+    repo.sync_to_remote(
+        message="Update TeX related submodules to the latest version",
+        branch=update_branch,
+    )
 
 
 def main() -> None:
