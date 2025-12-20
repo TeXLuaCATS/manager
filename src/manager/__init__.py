@@ -997,6 +997,7 @@ class Repository:
 
         The method uses nested helper functions to simplify git submodule commands.
         """
+
         def submodule(*args: str) -> None:
             self.check_call("git", "submodule", *args)
 
@@ -2142,6 +2143,21 @@ def update_lls_addons(clean: bool) -> None:
         message="Update TeX related submodules to the latest version",
         branch=update_branch,
     )
+
+
+def recursive_help(cmd: click.core.Command, parent: click.core.Context | None = None) -> None:
+    """https://stackoverflow.com/a/58018765"""
+    ctx = click.core.Context(cmd, info_name=cmd.name, parent=parent)
+    print(cmd.get_help(ctx))
+    print()
+    commands = getattr(cmd, "commands", {})
+    for sub in commands.values():
+        recursive_help(sub, ctx)
+
+
+@cli.command()
+def dumphelp() -> None:
+    recursive_help(cli)
 
 
 def main() -> None:
