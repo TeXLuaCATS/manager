@@ -986,6 +986,17 @@ class Repository:
         self.check_call("git", "push", "-u", "origin", "main")
 
     def sync_submodules(self) -> None:
+        """
+        Synchronize all git submodules to their latest state.
+
+        This method updates all submodules recursively by:
+
+        1. Resetting any local changes in each submodule
+        2. Checking out the main branch
+        3. Pulling the latest changes from the origin remote
+
+        The method uses nested helper functions to simplify git submodule commands.
+        """
         def submodule(*args: str) -> None:
             self.check_call("git", "submodule", *args)
 
@@ -2089,7 +2100,7 @@ def submodules() -> None:
 
 
 @cli.command()
-@click.option("--clean", is_flag=True, help="Remove a already cloned lls addon repo.")
+@click.option("--clean", is_flag=True, help="Remove a already cloned LLS addon repo.")
 def update_lls_addons(clean: bool) -> None:
     """
     Create a branch for a pull request in the repo git@github.com:Josef-Friedrich/LLS-Addons.git
@@ -2122,10 +2133,7 @@ def update_lls_addons(clean: bool) -> None:
         "tex-luametatex",
         "tex-luatex",
     ]:
-        pass
-
         addon_root = base / "addons" / addon / "module"
-
         addon_repo = Repository(addon_root)
         addon_repo.sync_from_remote()
         _run_stylua(addon_root)
