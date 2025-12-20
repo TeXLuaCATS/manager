@@ -1,2 +1,3 @@
 # manager
-Python script to manage various tasks (run examples, distribute)
+
+Python command line tool for managing TeX-related LuaCATS definitions (execute examples, format, build, distribute, etc.)
