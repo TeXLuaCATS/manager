@@ -2104,7 +2104,7 @@ def submodules() -> None:
 @click.option("--clean", is_flag=True, help="Remove a already cloned LLS addon repo.")
 def update_lls_addons(clean: bool) -> None:
     """
-    Create a branch for a pull request in the repo git@github.com:Josef-Friedrich/LLS-Addons.git
+    Create a branch for a pull request in the repo git@github.com:TeXLuaCATS/LLS-Addons.git
     to update submodules in the repo
     git@github.com:LuaLS/LLS-Addons.git
     """
@@ -2114,7 +2114,7 @@ def update_lls_addons(clean: bool) -> None:
     if clean and base.exists():
         shutil.rmtree(base, ignore_errors=True)
     repo = Repository.clone(
-        "git@github.com:Josef-Friedrich/LLS-Addons.git", base, ignore_errors=True
+        "git@github.com:TeXLuaCATS/LLS-Addons.git", base, ignore_errors=True
     )
     repo.fetch_upstream("git@github.com:LuaLS/LLS-Addons.git")
     today = datetime.now().strftime("%Y-%m-%d")
